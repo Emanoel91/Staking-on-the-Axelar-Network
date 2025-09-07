@@ -182,21 +182,6 @@ with col4:
 col5, col6 = st.columns(2)
 
 with col5:
-    fig_norm_stacked_volume = px.bar(
-       df_staking_over_time,
-       x="Date",
-       y="Txn Volume",
-       color="Action",
-       title="Transactions Volume Over Time By Action (%Normalized)",
-       text="Txn Volume",
-    )
-
-    fig_norm_stacked_volume.update_layout(barmode='stack', uniformtext_minsize=8, uniformtext_mode='hide')
-    fig_norm_stacked_volume.update_traces(textposition='inside')
-
-    fig_norm_stacked_volume.update_layout(yaxis=dict(tickformat='%'), legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
-    fig_norm_stacked_volume.update_traces(hovertemplate='%{y} Transfers<br>%{x}<br>%{color}')
-
     df_norm = df_staking_over_time.copy()
     df_norm['total_per_date'] = df_norm.groupby('Date')['Txn Volume'].transform('sum')
     df_norm['normalized'] = df_norm['Txn Volume'] / df_norm['total_per_date']
@@ -210,9 +195,20 @@ with col5:
        text=df_norm['Txn Volume'].astype(str),
     )
 
-    fig_norm_stacked_volume.update_layout(barmode='stack')
+    fig_norm_stacked_volume.update_layout(
+        barmode='stack',
+        yaxis=dict(tickformat='%'),
+        legend=dict(
+            orientation="h",   # افقی
+            yanchor="bottom",  # لنگر در پایین
+            y=1.02,            # بالای نمودار
+            xanchor="center",
+            x=0.5
+        )
+    )
+
     fig_norm_stacked_volume.update_traces(textposition='inside')
-    fig_norm_stacked_volume.update_yaxes(tickformat='%')
+
     st.plotly_chart(fig_norm_stacked_volume, use_container_width=True)
 
 with col6:
