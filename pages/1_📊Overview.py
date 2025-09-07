@@ -197,6 +197,7 @@ with col5:
 
     fig_norm_stacked_volume.update_layout(
         barmode='stack',
+        xaxis_title="",
         yaxis=dict(tickformat='%'),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
     )
@@ -221,6 +222,7 @@ with col6:
 
     fig_norm_stacked_txn.update_layout(
         barmode='stack',
+        xaxis_title="",
         yaxis=dict(tickformat='%'),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title="")
     )
