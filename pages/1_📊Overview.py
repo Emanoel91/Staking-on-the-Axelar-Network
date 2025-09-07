@@ -198,13 +198,7 @@ with col5:
     fig_norm_stacked_volume.update_layout(
         barmode='stack',
         yaxis=dict(tickformat='%'),
-        legend=dict(
-            orientation="h",   # افقی
-            yanchor="bottom",  # لنگر در پایین
-            y=1.02,            # بالای نمودار
-            xanchor="center",
-            x=0.5
-        )
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
     )
 
     fig_norm_stacked_volume.update_traces(textposition='inside')
@@ -212,21 +206,6 @@ with col5:
     st.plotly_chart(fig_norm_stacked_volume, use_container_width=True)
 
 with col6:
-    fig_norm_stacked_txn = px.bar(
-       df_staking_over_time,
-       x="Date",
-       y="Txn Count",
-       color="Action",
-       title="Transactions Count Over Time By Action (%Normalized)",
-       text="Txn Count",
-    )
-
-    fig_norm_stacked_txn.update_layout(barmode='stack', uniformtext_minsize=8, uniformtext_mode='hide')
-    fig_norm_stacked_txn.update_traces(textposition='inside')
-
-    fig_norm_stacked_txn.update_layout(yaxis=dict(tickformat='%'), legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
-    fig_norm_stacked_txn.update_traces(hovertemplate='%{y} Transfers<br>%{x}<br>%{color}')
-
     df_norm = df_staking_over_time.copy()
     df_norm['total_per_date'] = df_norm.groupby('Date')['Txn Count'].transform('sum')
     df_norm['normalized'] = df_norm['Txn Count'] / df_norm['total_per_date']
@@ -240,8 +219,13 @@ with col6:
        text=df_norm['Txn Count'].astype(str),
     )
 
-    fig_norm_stacked_txn.update_layout(barmode='stack')
+    fig_norm_stacked_txn.update_layout(
+        barmode='stack',
+        yaxis=dict(tickformat='%'),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title="")
+    )
+
     fig_norm_stacked_txn.update_traces(textposition='inside')
-    fig_norm_stacked_txn.update_yaxes(tickformat='%')
+
     st.plotly_chart(fig_norm_stacked_txn, use_container_width=True)
 
