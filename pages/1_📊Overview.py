@@ -141,7 +141,7 @@ with col1:
         color="Action",
         title="Transactions Volume Over Time By Action"
     )
-    fig_stacked_volume.update_layout(barmode="stack", yaxis_title="$USD", xaxis_title="")
+    fig_stacked_volume.update_layout(barmode="stack", yaxis_title="$USD", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
     st.plotly_chart(fig_stacked_volume, use_container_width=True)
 
 with col2:
@@ -152,7 +152,7 @@ with col2:
         color="Action",
         title="Transactions Count Over Time By Action"
     )
-    fig_stacked_txn.update_layout(barmode="stack", yaxis_title="Txns count", xaxis_title="")
+    fig_stacked_txn.update_layout(barmode="stack", yaxis_title="Txns count", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
     st.plotly_chart(fig_stacked_txn, use_container_width=True)
 
 col3, col4 = st.columns(2)
