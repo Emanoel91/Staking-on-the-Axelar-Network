@@ -233,3 +233,56 @@ with col6:
 
     st.plotly_chart(fig_norm_stacked_txn, use_container_width=True)
 
+# --- Row 4 ---------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_staking_total_stats(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select action as "Action", 
+    round(sum(amount)/pow(10,6)) as "Txn Volume", count(distinct tx_id) as "Txn Count",
+    count(distinct delegator_address) as "User Count"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}'
+    group by 1
+    order by 2 desc 
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+# --- Load Data: Row 4 ------------------------------------------------
+df_staking_total_stats = load_staking_total_stats(start_date, end_date)
+# --- Charts: Row 4 ---------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+     fig_donut_volume = px.pie(
+         df_staking_total_stats,
+         names="Action",
+         values="Txn Volume",
+         title="Total Transactions Volume By Action",
+         hole=0.5,
+         color="Action"
+         )
+
+     fig_donut_volume.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(df_staking_total_stats))
+     fig_donut_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+     st.plotly_chart(fig_donut_volume, use_container_width=True)
+
+with col1:
+     fig_donut_txn = px.pie(
+         df_staking_total_stats,
+         names="Action",
+         values="Txn Count",
+         title="Total Transactions Count By Action",
+         hole=0.5,
+         color="Action"
+         )
+
+     fig_donut_txn.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(df_staking_total_stats))
+     fig_donut_txn.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+     st.plotly_chart(fig_donut_txn, use_container_width=True)
+
