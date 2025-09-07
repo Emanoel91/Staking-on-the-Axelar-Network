@@ -152,7 +152,7 @@ with col2:
         color="Action",
         title="Transactions Count Over Time By Action"
     )
-    fig_stacked_txn.update_layout(barmode="stack", yaxis_title="Txns count", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    fig_stacked_txn.update_layout(barmode="stack", yaxis_title="Txns count", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_stacked_txn, use_container_width=True)
 
 col3, col4 = st.columns(2)
@@ -165,7 +165,7 @@ with col3:
         color="Action",
         title="User Count over Time By Action"
     )
-    fig_line_user.update_layout(yaxis_title="Wallet count", xaxis_title="")
+    fig_line_user.update_layout(yaxis_title="Wallet count", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_line_user, use_container_width=True)
 
 with col4:
@@ -176,7 +176,7 @@ with col4:
         color="Action",
         title="Median Transactions Volume Over Time By Action"
     )
-    fig_line_median.update_layout(yaxis_title="$USD", xaxis_title="")
+    fig_line_median.update_layout(yaxis_title="$USD", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_line_median, use_container_width=True)
 
 col5, col6 = st.columns(2)
@@ -194,7 +194,7 @@ with col5:
     fig_norm_stacked_volume.update_layout(barmode='stack', uniformtext_minsize=8, uniformtext_mode='hide')
     fig_norm_stacked_volume.update_traces(textposition='inside')
 
-    fig_norm_stacked_volume.update_layout(yaxis=dict(tickformat='%'))
+    fig_norm_stacked_volume.update_layout(yaxis=dict(tickformat='%'), legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     fig_norm_stacked_volume.update_traces(hovertemplate='%{y} Transfers<br>%{x}<br>%{color}')
 
     df_norm = df_staking_over_time.copy()
@@ -228,7 +228,7 @@ with col6:
     fig_norm_stacked_txn.update_layout(barmode='stack', uniformtext_minsize=8, uniformtext_mode='hide')
     fig_norm_stacked_txn.update_traces(textposition='inside')
 
-    fig_norm_stacked_txn.update_layout(yaxis=dict(tickformat='%'))
+    fig_norm_stacked_txn.update_layout(yaxis=dict(tickformat='%'), legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     fig_norm_stacked_txn.update_traces(hovertemplate='%{y} Transfers<br>%{x}<br>%{color}')
 
     df_norm = df_staking_over_time.copy()
