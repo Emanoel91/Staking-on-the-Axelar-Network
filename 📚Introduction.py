@@ -35,7 +35,7 @@ st.markdown(
 # --- Info Box ---
 st.markdown(
     """
-    <div style="background-color: #0090ff; padding: 15px; border-radius: 10px; border: 1px solid #0090ff;">
+    <div style="background-color: #fec7a2; padding: 15px; border-radius: 10px; border: 1px solid #fec7a2;">
         Axelar's staking mechanism is an important component of its blockchain network. The staking process involves AXL token holders participating in the 
         network's Proof-of-Stake (PoS) consensus protocol. Validators stake their AXL tokens to verify cross-chain transactions and maintain the security and 
         integrity of the network. To stake AXL tokens, users need to ensure they have native AXL tokens held in a Cosmos-compatible wallet that supports staking, 
