@@ -199,7 +199,7 @@ with col5:
         barmode='stack',
         xaxis_title="",
         yaxis=dict(tickformat='%'),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title="")
     )
 
     fig_norm_stacked_volume.update_traces(textposition='inside')
