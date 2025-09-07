@@ -256,6 +256,7 @@ def load_staking_total_stats(start_date, end_date):
 # --- Load Data: Row 4 ------------------------------------------------
 df_staking_total_stats = load_staking_total_stats(start_date, end_date)
 # --- Charts: Row 4 ---------------------------------------------------
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -272,7 +273,7 @@ with col1:
      fig_donut_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
      st.plotly_chart(fig_donut_volume, use_container_width=True)
 
-with col1:
+with col2:
      fig_donut_txn = px.pie(
          df_staking_total_stats,
          names="Action",
