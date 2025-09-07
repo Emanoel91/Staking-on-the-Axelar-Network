@@ -105,3 +105,147 @@ with col2:
 
 with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-09-30"))
+
+# --- Row 1,2,3 ---------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_staking_over_time(timeframe, start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select date_trunc('{timeframe}',block_timestamp) as "Date", action as "Action", 
+    round(sum(amount)/pow(10,6)) as "Txn Volume", count(distinct tx_id) as "Txn Count",
+    count(distinct delegator_address) as "User Count",
+    round(avg(amount)/pow(10,6)) as "Average", round(median(amount)/pow(10,6)) as "Median", 
+    round(max(amount)/pow(10,6)) as "Maximum"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}'
+    group by 1,2
+    order by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+# --- Load Data: Row 1,2,3 ---------------------------------------------------
+df_staking_over_time = load_staking_over_time(timeframe, start_date, end_date)
+# --- Charts: Row 1 ----------------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    fig_stacked_volume = px.bar(
+        df_staking_over_time,
+        x="Date",
+        y="Txn Volume",
+        color="Action",
+        title="Transactions Volume Over Time By Action"
+    )
+    fig_stacked_volume.update_layout(barmode="stack", yaxis_title="$USD", xaxis_title="")
+    st.plotly_chart(fig_stacked_volume, use_container_width=True)
+
+with col2:
+    fig_stacked_txn = px.bar(
+        df_staking_over_time,
+        x="Date",
+        y="Txn Count",
+        color="Action",
+        title="Transactions Count Over Time By Action"
+    )
+    fig_stacked_txn.update_layout(barmode="stack", yaxis_title="Txns count", xaxis_title="")
+    st.plotly_chart(fig_stacked_txn, use_container_width=True)
+
+col3, col4 = st.columns(2)
+
+with col3:
+    fig_line_user = px.line(
+        df_staking_over_time,
+        x="Date",
+        y="User Count",
+        color="Action",
+        title="User Count over Time By Action"
+    )
+    fig_line_user.update_layout(yaxis_title="Wallet count", xaxis_title="")
+    st.plotly_chart(fig_line_user, use_container_width=True)
+
+with col4:
+    fig_line_median = px.line(
+        df_staking_over_time,
+        x="Date",
+        y="Median",
+        color="Action",
+        title="Median Transactions Volume Over Time By Action"
+    )
+    fig_line_median.update_layout(yaxis_title="$USD", xaxis_title="")
+    st.plotly_chart(fig_line_median, use_container_width=True)
+
+col5, col6 = st.columns(2)
+
+with col5:
+    fig_norm_stacked_volume = px.bar(
+       df_staking_over_time,
+       x="Date",
+       y="Txn Volume",
+       color="Action",
+       title="Transactions Volume Over Time By Action (%Normalized)",
+       text="Txn Volume",
+    )
+
+    fig_norm_stacked_volume.update_layout(barmode='stack', uniformtext_minsize=8, uniformtext_mode='hide')
+    fig_norm_stacked_volume.update_traces(textposition='inside')
+
+    fig_norm_stacked_volume.update_layout(yaxis=dict(tickformat='%'))
+    fig_norm_stacked_volume.update_traces(hovertemplate='%{y} Transfers<br>%{x}<br>%{color}')
+
+    df_norm = df_staking_over_time.copy()
+    df_norm['total_per_date'] = df_norm.groupby('Date')['Txn Volume'].transform('sum')
+    df_norm['normalized'] = df_norm['Txn Volume'] / df_norm['total_per_date']
+
+    fig_norm_stacked_volume = px.bar(
+       df_norm,
+       x='Date',
+       y='normalized',
+       color='Action',
+       title="Transactions Volume Over Time By Action (%Normalized)",
+       text=df_norm['Txn Volume'].astype(str),
+    )
+
+    fig_norm_stacked_volume.update_layout(barmode='stack')
+    fig_norm_stacked_volume.update_traces(textposition='inside')
+    fig_norm_stacked_volume.update_yaxes(tickformat='%')
+    st.plotly_chart(fig_norm_stacked_volume, use_container_width=True)
+
+with col6:
+    fig_norm_stacked_txn = px.bar(
+       df_staking_over_time,
+       x="Date",
+       y="Txn Count",
+       color="Action",
+       title="Transactions Count Over Time By Action (%Normalized)",
+       text="Txn Count",
+    )
+
+    fig_norm_stacked_txn.update_layout(barmode='stack', uniformtext_minsize=8, uniformtext_mode='hide')
+    fig_norm_stacked_txn.update_traces(textposition='inside')
+
+    fig_norm_stacked_txn.update_layout(yaxis=dict(tickformat='%'))
+    fig_norm_stacked_txn.update_traces(hovertemplate='%{y} Transfers<br>%{x}<br>%{color}')
+
+    df_norm = df_staking_over_time.copy()
+    df_norm['total_per_date'] = df_norm.groupby('Date')['Txn Count'].transform('sum')
+    df_norm['normalized'] = df_norm['Txn Count'] / df_norm['total_per_date']
+
+    fig_norm_stacked_txn = px.bar(
+       df_norm,
+       x='Date',
+       y='normalized',
+       color='Action',
+       title="Transactions Count Over Time By Action (%Normalized)",
+       text=df_norm['Txn Count'].astype(str),
+    )
+
+    fig_norm_stacked_txn.update_layout(barmode='stack')
+    fig_norm_stacked_txn.update_traces(textposition='inside')
+    fig_norm_stacked_txn.update_yaxes(tickformat='%')
+    st.plotly_chart(fig_norm_stacked_txn, use_container_width=True)
+
