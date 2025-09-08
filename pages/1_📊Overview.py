@@ -308,7 +308,8 @@ fig_stats.update_layout(
     barmode="group",
     title="Statistical Data Related to the Volume of Transactions",
     xaxis_title="Action",
-    yaxis_title="$USD"
+    yaxis_title="$USD",
+    yaxis=dict(type="log")
 )
 
 col1, col2 = st.columns(2)
