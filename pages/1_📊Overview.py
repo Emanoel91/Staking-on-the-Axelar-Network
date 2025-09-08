@@ -315,3 +315,36 @@ fig_stats.update_layout(
 col1, col2 = st.columns(2)
 col1.plotly_chart(fig_users, use_container_width=True)
 col2.plotly_chart(fig_stats, use_container_width=True)
+
+# --- Row 6 ---------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_whales_activity(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select block_timestamp::date as "📅Date", delegator_address as "🐋Staker", amount/pow(10,6) as "💰Staking Volume ($AXL)", 
+    case when action='delegate' then '🟢Stake' 
+    when action='undelegate' then '🔴Unstake' 
+    when action='redelegate' then '🟡Restake'
+    end as "Action", 
+    validator_address as "👩‍💻Validator"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and (block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}') and (amount/pow(10,6))>=100000
+    order by 1 desc
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+    
+# --- Load Data: Row 6 ------------------------------------------------
+df_whales_activity = load_whales_activity(start_date, end_date)
+
+# --- Show Table: Row 6 -----------------------------------------------
+st.subheader("Whales Activity Tracker🐋")
+df_display = df_whales_activity.copy()
+df_display.index = df_display.index + 1
+df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)
+st.dataframe(df_display, use_container_width=True)
