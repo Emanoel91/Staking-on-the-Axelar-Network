@@ -243,7 +243,8 @@ def load_staking_total_stats(start_date, end_date):
     query = f"""
     select action as "Action", 
     round(sum(amount)/pow(10,6)) as "Txn Volume", count(distinct tx_id) as "Txn Count",
-    count(distinct delegator_address) as "User Count"
+    count(distinct delegator_address) as "User Count", round(max(amount)/pow(10,6)) as "Maximum",
+    round(median(amount)/pow(10,6)) as "Median", round(avg(amount)/pow(10,6)) as "Average"
     from axelar.gov.fact_staking
     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
     block_timestamp::date<='{end_str}'
@@ -287,3 +288,29 @@ with col2:
      fig_donut_txn.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
      st.plotly_chart(fig_donut_txn, use_container_width=True)
 
+# --- Charts: Row 5 -----------------------------------------------
+fig_users = go.Figure(data=[
+    go.Bar(name="", x=df_staking_total_stats["Action"], y=df_staking_total_stats["User Count"]),
+])
+fig_users.update_layout(
+    barmode="group",
+    title="Total Users Count By Action",
+    xaxis_title="Action",
+    yaxis_title="Wallet count"
+)
+
+fig_stats = go.Figure(data=[
+    go.Bar(name="Maximum", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Maximum"]),
+    go.Bar(name="Average", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Average"]),
+    go.Bar(name="Median", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Median"])
+])
+fig_stats.update_layout(
+    barmode="group",
+    title="Statistical Data Related to the Volume of Transactions",
+    xaxis_title="Action",
+    yaxis_title="$USD"
+)
+
+col1, col2 = st.columns(2)
+col1.plotly_chart(fig_users, use_container_width=True)
+col2.plotly_chart(fig_stats, use_container_width=True)
