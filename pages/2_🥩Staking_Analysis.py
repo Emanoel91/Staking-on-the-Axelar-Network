@@ -260,7 +260,10 @@ with col12:
 # --- Row 5 ----------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_net_staked_overtime(start_date, end_date):
-
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+    
     query = f"""
     with overview as (
     with date_start as (
