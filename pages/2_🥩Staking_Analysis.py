@@ -325,9 +325,9 @@ def load_net_staked_overtime(start_date, end_date):
 df_net_staked_overtime = load_net_staked_overtime(start_date, end_date)
 # --- Charts 5 ------------------------------------------------------------------------------------------------
 
-    fig = px.area(df_net_staked_overtime, x="Date", y="Net Staked", title="AXL Net Staked Amount Over Time")
-    fig.update_layout(xaxis_title="", yaxis_title="$AXL", template="plotly_white")
-    st.plotly_chart(fig, use_container_width=True)
+fig = px.area(df_net_staked_overtime, x="Date", y="Net Staked", title="AXL Net Staked Amount Over Time")
+fig.update_layout(xaxis_title="", yaxis_title="$AXL", template="plotly_white")
+st.plotly_chart(fig, use_container_width=True)
 
 @st.cache_data
 def load_staking_stats_different_time_frame():
