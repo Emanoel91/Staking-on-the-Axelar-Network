@@ -436,4 +436,51 @@ with col2:
     fig2.update_layout(title="Staking Volume by Timeframe", yaxis=dict(title="$AXL"), xaxis=dict(title=""),
         barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
     st.plotly_chart(fig2, use_container_width=True)
+
+# --- Row 8 ---------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_txn_distribution_volume(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+     with tab1 as (select tx_id, case 
+     when (amount/pow(10,6))<=1 then 'V<=1 AXL'
+     when (amount/pow(10,6))>1 and (amount/pow(10,6))<=10 then '1<V<=10 AXL' 
+     when (amount/pow(10,6))>10 and (amount/pow(10,6))<=100 then '10<V<=100 AXL'
+     when (amount/pow(10,6))>100 and (amount/pow(10,6))<=1000 then '100<V<=1k AXL'
+     when (amount/pow(10,6))>1000 and (amount/pow(10,6))<=10000 then '1k<V<=10k AXL'
+     when (amount/pow(10,6))>10000 and (amount/pow(10,6))<=100000 then '10k<V<=100k AXL'
+     when (amount/pow(10,6))>100000 and (amount/pow(10,6))<=1000000 then '100k<V<=1M AXL'
+     else 'V>1M AXL' end as "Staking Amount"
+     from axelar.gov.fact_staking
+     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+     block_timestamp::date<='{end_str}' and action='delegate')
+     
+     select "Staking Amount", count(distinct tx_id) as "Txns Count"
+     from tab1
+     group by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row 8 --------------------------------------------------------------------------------------------------
+df_txn_distribution_volume = load_txn_distribution_volume(start_date, end_date)
+# --- Charts 8 ----------------------------------------------------------------------------------------------------------
+bar_fig = px.bar(df_txn_distribution_volume, x="Staking Amount", y="Txns Count", title="Breakdown of Staking Transactions by Volume", color_discrete_sequence=["blue"])
+bar_fig.update_layout(xaxis_title="", yaxis_title="$AXL", bargap=0.2)
+
+fig_donut_volume = px.pie(df_txn_distribution_volume, names="Staking Amount", values="Txns Count", title="Share of Staking Transactions by Volume", hole=0.5, color="Staking Amount")
+fig_donut_volume.update_traces(textposition='inside', textinfo='percent', pull=[0.05]*len(df_txn_distribution_volume))
+fig_donut_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(bar_fig, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig_donut_volume, use_container_width=True)
    
