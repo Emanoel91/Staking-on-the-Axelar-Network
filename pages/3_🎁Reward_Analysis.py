@@ -384,7 +384,7 @@ st.dataframe(df_display, use_container_width=True)
 def load_recent_claim_stats():
 
     query = f"""
-    select block_timestamp::date as "📅Date", 
+    select block_timestamp as "📅Date", 
     delegator_address as "👨‍💼Claimer", 
     (amount)/pow(10,6) as "💰Reward Volume ($AXL)"
     from axelar.gov.fact_staking_rewards
