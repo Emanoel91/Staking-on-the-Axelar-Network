@@ -382,30 +382,28 @@ with col2:
         barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
     st.plotly_chart(fig2, use_container_width=True)
 
-
-
-
+# --- Row 7 ---------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_staking_stats_different_time_frame():
 
     query = f"""
-    with tab1 as (select count(distinct tx_id) as staking_count, 
-    round(sum(amount)/pow(10,6)) as staking_volume, '24h' as "Time Frame"
+    with tab1 as (select count(distinct tx_id) as "Stake Count", count(distinct delegator_address) as "Staker Count",
+    round(sum(amount)/pow(10,6)) as "Staking Volume", '24h' as "Time Frame"
     from axelar.gov.fact_staking
     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date=current_date-1 and action='delegate'),
 
-    tab2 as (select count(distinct tx_id) as staking_count, 
-    round(sum(amount)/pow(10,6)) as staking_volume, '7d' as "Time Frame"
+    tab2 as (select count(distinct tx_id) as "Stake Count", count(distinct delegator_address) as "Staker Count",
+    round(sum(amount)/pow(10,6)) as "Staking Volume", '7d' as "Time Frame"
     from axelar.gov.fact_staking
     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>=current_date-6 and action='delegate'),
 
-    tab3 as (select count(distinct tx_id) as staking_count, 
-    round(sum(amount)/pow(10,6)) as staking_volume, '30d' as "Time Frame"
+    tab3 as (select count(distinct tx_id) as "Stake Count", count(distinct delegator_address) as "Staker Count",
+    round(sum(amount)/pow(10,6)) as "Staking Volume", '30d' as "Time Frame"
     from axelar.gov.fact_staking
     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>=current_date-29 and action='delegate'),
 
-    tab4 as (select count(distinct tx_id) as staking_count, 
-    round(sum(amount)/pow(10,6)) as staking_volume, '1y' as "Time Frame"
+    tab4 as (select count(distinct tx_id) as "Stake Count", count(distinct delegator_address) as "Staker Count", 
+    round(sum(amount)/pow(10,6)) as "Staking Volume", '1y' as "Time Frame"
     from axelar.gov.fact_staking
     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>=current_date-364 and action='delegate')
 
@@ -417,6 +415,29 @@ def load_staking_stats_different_time_frame():
 
     df = pd.read_sql(query, conn)
     return df
+
+# --- Load Data: Row 7 --------------------------------------------------------------------------------------------------
+df_staking_stats_different_time_frame = load_staking_stats_different_time_frame()
+# --- Charts: Row 7 -----------------------------------------------------------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    fig1 = go.Figure()
+    fig1.add_bar(x=df_staking_stats_different_time_frame["Time Frame"], y=df_staking_stats_different_time_frame["Stake Count"], name="Stake Count", yaxis="y1", marker_color="blue")
+    fig1.add_trace(go.Scatter(x=df_staking_stats_different_time_frame["Time Frame"], y=df_staking_stats_different_time_frame["Staker Count"], name="Staker Count", mode="lines", 
+                              yaxis="y2", line=dict(color="black")))
+    fig1.update_layout(title="Staking Transaction & Staker Count by Timeframe", yaxis=dict(title="Txn count"), yaxis2=dict(title="Wallet count", overlaying="y", side="right"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    fig2 = go.Figure()
+    fig2.add_bar(x=df_staking_stats_different_time_frame["Time Frame"], y=df_staking_stats_different_time_frame["Staking Volume"], name="Staking Volume", yaxis="y1", marker_color="blue")
+    fig2.update_layout(title="Staking Volume by Timeframe", yaxis=dict(title="$AXL"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig2, use_container_width=True)
+    
+
 
 
 
@@ -573,7 +594,7 @@ def load_stakers_activity_tracker(start_date, end_date):
     df = pd.read_sql(query, conn)
     return df
 # --- Load Data -----------------------------------------------------------------------------------------------------
-df_staking_stats_different_time_frame = load_staking_stats_different_time_frame()
+
 
 
 df_txn_distribution_volume = load_txn_distribution_volume(start_date, end_date)
