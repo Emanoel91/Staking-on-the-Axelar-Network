@@ -244,8 +244,8 @@ df_stakers_distribution_count = load_stakers_distribution_count(start_date, end_
 # --- Chart: Row 3 -----------------------------------------------------------------------------------------------------
 fig_b1 = go.Figure()
 fig_b1.add_trace(go.Bar(x=df_stakers_distribution_count["Staking Count"], y=df_stakers_distribution_count["Stakers Count"], name="Stakers Count"))
-fig_b1.update_layout(barmode="stack", title="Distribution of Stakers Based on the Staking Count", yaxis=dict(title="Wallet count"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), yaxis= dict(type="log"))
+fig_b1.update_layout(barmode="stack", title="Distribution of Stakers Based on the Staking Count", yaxis=dict(title="Wallet count"), yaxis= dict(type="log"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
 st.plotly_chart(fig_b1, use_container_width=True)
 
 
