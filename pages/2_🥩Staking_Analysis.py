@@ -107,6 +107,159 @@ with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-09-30"))
 
 # --- Functions -----------------------------------------------------------------------------------------------------
+# --- Row 1 ---------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_current_net_staked():
+
+    query = f"""
+    with date_start as (
+    with dates AS (
+    SELECT CAST('2022-02-10' AS DATE) AS start_date 
+    UNION ALL
+    SELECT DATEADD(day, 1, start_date)
+    FROM dates
+    WHERE start_date < CURRENT_DATE())
+    SELECT date_trunc(day, start_date) AS start_date
+    FROM dates),
+    axl_stakers_balance_change as (
+    select * from 
+        (select date_trunc(day, block_timestamp) as date, 
+        user, 
+        sum(amount)/1e6 as balance_change
+        from 
+            (
+            select block_timestamp, DELEGATOR_ADDRESS as user, -1* amount as amount, TX_ID as tx_hash
+            from axelar.gov.fact_staking
+            where action='undelegate' and TX_SUCCEEDED=TRUE
+            union all 
+            select block_timestamp, DELEGATOR_ADDRESS, amount, TX_ID
+            from axelar.gov.fact_staking
+            where action='delegate' and TX_SUCCEEDED=TRUE)
+        group by 1,2)),
+
+    axl_stakers_historic_holders as (
+    select user
+    from axl_stakers_balance_change
+    group by 1),
+
+    user_dates as (
+    select start_date, user
+    from date_start, axl_stakers_historic_holders),
+
+    users_balance as 
+    (select start_date as "Date", user,
+    lag(balance_raw) ignore nulls over (partition by user order by start_date) as balance_lag,
+    ifnull(balance_raw, balance_lag) as balance
+    from (
+        select start_date, a.user, balance_change,
+        sum(balance_change) over (partition by a.user order by start_date) as balance_raw,
+        from user_dates a 
+        left join axl_stakers_balance_change b 
+        on date=start_date and a.user=b.user))
+
+    select "Date", sum(balance) as "Net Staked", 1215160193 as "Current Total Supply", 100*"Net Staked"/"Current Total Supply" as "Net Staked %"
+    from users_balance
+    where balance>=0.001 and balance is not null
+    group by 1 
+    order by 1 desc
+    limit 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Row 2,3,4 -------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_staking_stats(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (
+    select count(distinct tx_id) as "Staking Count",
+    count(distinct delegator_address) as "Unique Stakers",
+    round(avg(amount)/pow(10,6)) as "Average", 
+    round(median(amount)/pow(10,6)) as "Median", 
+    round(max(amount)/pow(10,6)) as "Maximum",
+    round((sum(amount)/pow(10,6))/count(distinct delegator_address)) as "Avg Staking Volume per User",
+    round(count(distinct tx_id)/count(distinct delegator_address)) as "Avg Staking Count per User"
+   from axelar.gov.fact_staking
+   where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+   block_timestamp::date<='{end_str}' and action='delegate'),
+   table2 as (with tab1 as (select delegator_address, round(sum(amount)/pow(10,6)) as tot_staking_vol
+   from axelar.gov.fact_staking
+   where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+   block_timestamp::date<='{end_str}' and action='delegate'
+   group by 1)
+   select round(median(tot_staking_vol)) as "Median Volume of Tokens Staked by Users",
+   round(max(tot_staking_vol)) as "Max Volume of Tokens Staked by User"
+   from tab1)
+   select * from table1 , table2
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row --------------------------------------------------------------------------------------------------------
+df_current_net_staked = load_current_net_staked()
+df_staking_stats = load_staking_stats(start_date, end_date)
+# --- KPIs: Row 1,2,3,4 ---------------------------------------------------------------------------------------------------
+card_style = """
+    <div style="
+        background-color: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+        ">
+        <h4 style="margin: 0; font-size: 20px; color: #555;">{label}</h4>
+        <p style="margin: 5px 0 0; font-size: 20px; font-weight: bold; color: #000;">{value}</p>
+    </div>
+"""
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown(card_style.format(label="Current Net Staked", value=f"{df_current_net_staked["Net Staked"][0]:,} $AXL"), unsafe_allow_html=True)
+with col2:
+    st.markdown(card_style.format(label="%Staked-to-Total Supply", value=f"{df_current_net_staked["Net Staked %"][0]:,}%"), unsafe_allow_html=True)
+with col3:
+    st.markdown(card_style.format(label="Current Total Supply", value=f"{df_current_net_staked["Current Total Supply"][0]:,} $AXL"), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+col4, col5, col6 = st.columns(3)
+with col4:
+    st.markdown(card_style.format(label="Staking Transactions", value=f"{df_staking_stats["Staking Count"][0]:,} Txns"), unsafe_allow_html=True)
+with col5:
+    st.markdown(card_style.format(label="Unique Stakers", value=f"{df_staking_stats["Unique Stakers"][0]:,} Wallets"), unsafe_allow_html=True)
+with col6:
+    st.markdown(card_style.format(label="Avg Staking Count per Wallet", value=f"{df_staking_stats["Avg Staking Count per User"][0]:,} Txns"), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+col7, col8, col9 = st.columns(3)
+with col7:
+    st.markdown(card_style.format(label="Avg Staking Amount per Txn", value=f"{df_staking_stats["Average"][0]:,} $AXL"), unsafe_allow_html=True)
+with col8:
+    st.markdown(card_style.format(label="Median Staking Amount per Txn", value=f"{df_staking_stats["Median"][0]:,} $AXL"), unsafe_allow_html=True)
+with col9:
+    st.markdown(card_style.format(label="Max Staking Amount per Txn", value=f"{df_staking_stats["Maximum"][0]:,} $AXL"), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+col10, col11, col12 = st.columns(3)
+with col10:
+    st.markdown(card_style.format(label="Avg Staking Amount per Wallet", value=f"{df_staking_stats["Avg Staking Volume per User"][0]:,} $AXL"), unsafe_allow_html=True)
+with col11:
+    st.markdown(card_style.format(label="Median Staking Amount per Wallet", value=f"{df_staking_stats["Median Volume of Tokens Staked by Users"][0]:,} $AXL"), unsafe_allow_html=True)
+with col12:
+    st.markdown(card_style.format(label="Max Staking Amount per Wallet", value=f"{df_staking_stats["Max Volume of Tokens Staked by User"][0]:,} $AXL"), unsafe_allow_html=True)
+
+
+
+
 @st.cache_data
 def load_staking_stats_different_time_frame():
 
@@ -140,35 +293,7 @@ def load_staking_stats_different_time_frame():
     df = pd.read_sql(query, conn)
     return df
 
-@st.cache_data
-def load_staking_stats(start_date, end_date):
-    
-    start_str = start_date.strftime("%Y-%m-%d")
-    end_str = end_date.strftime("%Y-%m-%d")
 
-    query = f"""
-    with table1 as (
-    select count(distinct tx_id) as "Staking Count",
-    round(avg(amount)/pow(10,6)) as "Avg Staking Volume per Txn", 
-    round(median(amount)/pow(10,6)) as "Median", 
-    round(max(amount)/pow(10,6)) as "Maximum",
-    round((sum(amount)/pow(10,6))/count(distinct delegator_address)) as "Avg Staking Volume per User",
-    round(count(distinct tx_id)/count(distinct delegator_address)) as "Avg Staking Count per User"
-   from axelar.gov.fact_staking
-   where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
-   block_timestamp::date<='{end_str}' and action='delegate'),
-   table2 as (with tab1 as (select delegator_address, round(sum(amount)/pow(10,6)) as tot_staking_vol
-   from axelar.gov.fact_staking
-   where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
-   block_timestamp::date<='{end_str}' and action='delegate'
-   group by 1)
-   select round(median(tot_staking_vol)) as "Median Volume of Tokens Staked by Users"
-   from tab1)
-   select * from table1 , table2
-    """
-
-    df = pd.read_sql(query, conn)
-    return df
 
 @st.cache_data
 def load_staking_overtime(timeframe, start_date, end_date):
@@ -348,7 +473,7 @@ def load_stakers_activity_tracker(start_date, end_date):
     return df
 # --- Load Data -----------------------------------------------------------------------------------------------------
 df_staking_stats_different_time_frame = load_staking_stats_different_time_frame()
-df_staking_stats = load_staking_stats(start_date, end_date)
+
 df_staking_overtime = load_staking_overtime(timeframe, start_date, end_date)
 df_txn_distribution_volume = load_txn_distribution_volume(start_date, end_date)
 df_stakers_overtime = load_stakers_overtime(timeframe, start_date, end_date)
