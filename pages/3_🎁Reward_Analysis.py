@@ -245,6 +245,26 @@ with col2:
         barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
     st.plotly_chart(fig2, use_container_width=True)
 
+col3, col4 = st.columns(2)
+
+with col3:
+    fig3 = go.Figure()
+    fig3.add_trace(go.Scatter(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Average"], name="Average Reward per Txn", mode="lines", 
+                              yaxis="y1", line=dict(color="blue")))
+    fig3.add_trace(go.Scatter(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Median"], name="Median Reward per Txn", mode="lines", 
+                              yaxis="y2", line=dict(color="green")))
+    fig3.update_layout(title="Average & Median Reward Claimed per Txn Over Time", yaxis=dict(title="$AXL"), yaxis2=dict(title="$AXL", overlaying="y", side="right"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig3, use_container_width=True)
+
+with col4:
+    fig4 = go.Figure()
+    fig4.add_bar(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Maximum"], name="Maximum Reward per Txn", yaxis="y1", marker_color="red")
+    fig4.update_layout(title="Maximum Reward Claimed per Txn Over Time", yaxis=dict(title="$AXL"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig4, use_container_width=True)
+
+
 
 
 
