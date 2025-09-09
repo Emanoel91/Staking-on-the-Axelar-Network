@@ -354,11 +354,11 @@ def load_top_reward_claimers(start_date, end_date):
     end_str = end_date.strftime("%Y-%m-%d")
 
     query = f"""
-    select delegator_address as "Delegator", 
-    round(sum(amount)/pow(10,6)) as "Reward Volume", 
+    select delegator_address as "Claimer", 
+    round(sum(amount)/pow(10,6)) || ' ' || '$AXL' as "Reward Volume", 
     count(distinct tx_id) as "Reward Claimed Txns",
     min(block_timestamp::date) as "First Reward Claim Date",
-    round(avg(amount)/pow(10,6)) as "Avg Reward Claimed"
+    round(avg(amount)/pow(10,6)) || ' ' || '$AXL' as "Avg Reward Claimed"
     from axelar.gov.fact_staking_rewards
     where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
     group by 1
@@ -384,8 +384,8 @@ st.dataframe(df_display, use_container_width=True)
 def load_recent_claim_stats():
 
     query = f"""
-    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Delegator", 
-    (amount)/pow(10,6) as "💰Reward Volume"
+    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Claimer", 
+    (amount)/pow(10,6) || ' $AXL' || '' as "💰Reward Volume"
     from axelar.gov.fact_staking_rewards
     where tx_succeeded='true' and block_timestamp::date = current_date - 1
     order by 1 desc 
