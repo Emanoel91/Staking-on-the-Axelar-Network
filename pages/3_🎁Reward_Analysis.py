@@ -118,8 +118,8 @@ def load_claim_reward_stats(start_date, end_date):
     select 
     count(distinct delegator_address) as "Reward Claimers", 
     round(sum(amount)/pow(10,6)) as "Reward Claimed", 
-    round((avg(amount)/pow(10,6)),1) as "Average", 
-    round((median(amount)/pow(10,6)),1) as "Median", 
+    round((avg(amount)/pow(10,6)),2) as "Average", 
+    round((median(amount)/pow(10,6)),2) as "Median", 
     ROUND(((sum(amount)/pow(10,6))/count(distinct delegator_address)),2) AS "Avg Reward Claimed per User",
     round(max(amount)/pow(10,6)) as "Maximum",
     count(distinct tx_id) as "Claim Txns Count"
