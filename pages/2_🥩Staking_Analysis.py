@@ -157,7 +157,7 @@ def load_current_net_staked():
         left join axl_stakers_balance_change b 
         on date=start_date and a.user=b.user))
 
-    select "Date", sum(balance) as "Net Staked", 1215160193 as "Current Total Supply", 100*"Net Staked"/"Current Total Supply" as "Net Staked %"
+    select "Date", round(sum(balance)) as "Net Staked", 1215160193 as "Current Total Supply", round((100*"Net Staked"/"Current Total Supply"),2) as "Net Staked %"
     from users_balance
     where balance>=0.001 and balance is not null
     group by 1 
