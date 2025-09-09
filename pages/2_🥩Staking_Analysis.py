@@ -332,6 +332,59 @@ fig = px.area(df_net_staked_overtime, x="Date", y="Net Staked", title="AXL Net S
 fig.update_layout(xaxis_title="", yaxis_title="$AXL", template="plotly_white")
 st.plotly_chart(fig, use_container_width=True)
 
+# --- Row 6 -------------------------------------------------------------------------------------------------------------
+
+@st.cache_data
+def load_staking_overtime(timeframe, start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select date_trunc('{timeframe}',block_timestamp) as "Date", 
+    round(sum(amount)/pow(10,6)) as "Staking Volume", 
+    count(distinct tx_id) as "Staking Count",
+    sum("Staking Volume") over (order by "Date" asc) as "Total Staking Volume", 
+    sum("Staking Count") over (order by "Date" asc) as "Total Staking Count",
+    round(avg(amount)/pow(10,6)) as "Avg Volume per Txn", 
+    round((sum(amount)/pow(10,6))/count(distinct delegator_address)) as "Avg Volume per User"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}' and action='delegate'
+    group by 1
+    order by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row 6 ---------------------------------------------------------------------------------------------------
+df_staking_overtime = load_staking_overtime(timeframe, start_date, end_date)
+# --- Charts: Row 6 ------------------------------------------------------------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    fig1 = go.Figure()
+    fig1.add_bar(x=df_staking_overtime["Date"], y=df_staking_overtime["Staking Count"], name="Staking Count", yaxis="y1", marker_color="blue")
+    fig1.add_trace(go.Scatter(x=df_staking_overtime["Date"], y=df_staking_overtime["Total Staking Count"], name="Total Staking Count", mode="lines", 
+                              yaxis="y2", line=dict(color="black")))
+    fig1.update_layout(title="AXL Staking Count Over Time", yaxis=dict(title="Txns count"), yaxis2=dict(title="Txns count", overlaying="y", side="right"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(x=df_staking_overtime["Date"], y=df_staking_overtime["Avg Volume per Txn"], name="Average Volume per Txn", mode="lines", 
+                              yaxis="y1", line=dict(color="blue")))
+    fig2.add_trace(go.Scatter(x=df_staking_overtime["Date"], y=df_staking_overtime["Avg Volume per User"], name="Average Volume per User", mode="lines", 
+                              yaxis="y2", line=dict(color="green")))
+    fig2.update_layout(title="Average Staking Volume Over Time", yaxis=dict(title="$AXL"), yaxis2=dict(title="$AXL", overlaying="y", side="right"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig2, use_container_width=True)
+
+
+
+
 @st.cache_data
 def load_staking_stats_different_time_frame():
 
@@ -366,30 +419,6 @@ def load_staking_stats_different_time_frame():
     return df
 
 
-
-@st.cache_data
-def load_staking_overtime(timeframe, start_date, end_date):
-    
-    start_str = start_date.strftime("%Y-%m-%d")
-    end_str = end_date.strftime("%Y-%m-%d")
-
-    query = f"""
-    select date_trunc('{timeframe}',block_timestamp) as "Date", 
-    round(sum(amount)/pow(10,6)) as "Staking Volume", 
-    count(distinct tx_id) as "Staking Count",
-    sum("Staking Volume") over (order by "Date" asc) as "Total Staking Volume", 
-    sum("Staking Count") over (order by "Date" asc) as "Total Staking Count",
-    round(avg(amount)/pow(10,6)) as "Avg Volume per tx", 
-    round((sum(amount)/pow(10,6))/count(distinct delegator_address)) as "Avg Volume per User"
-    from axelar.gov.fact_staking
-    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
-    block_timestamp::date<='{end_str}' and action='delegate'
-    group by 1
-    order by 1
-    """
-
-    df = pd.read_sql(query, conn)
-    return df
 
 @st.cache_data
 def load_txn_distribution_volume(start_date, end_date):
@@ -546,7 +575,7 @@ def load_stakers_activity_tracker(start_date, end_date):
 # --- Load Data -----------------------------------------------------------------------------------------------------
 df_staking_stats_different_time_frame = load_staking_stats_different_time_frame()
 
-df_staking_overtime = load_staking_overtime(timeframe, start_date, end_date)
+
 df_txn_distribution_volume = load_txn_distribution_volume(start_date, end_date)
 df_stakers_overtime = load_stakers_overtime(timeframe, start_date, end_date)
 df_stakers_distribution_count = load_stakers_distribution_count(start_date, end_date)
