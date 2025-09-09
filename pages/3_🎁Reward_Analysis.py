@@ -169,7 +169,7 @@ card_style = """
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown(card_style.format(label="Unique Claimers", value=f"{df_claim_reward_stats["Reward Claimers"][0]:,}Wallets"), unsafe_allow_html=True)
+    st.markdown(card_style.format(label="Unique Claimers", value=f"{df_claim_reward_stats["Reward Claimers"][0]:,} Wallets"), unsafe_allow_html=True)
 with col2:
     st.markdown(card_style.format(label="Claim Transactions", value=f"{df_claim_reward_stats["Claim Txns Count"][0]:,} Txns"), unsafe_allow_html=True)
 with col3:
