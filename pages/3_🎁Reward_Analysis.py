@@ -346,28 +346,7 @@ with col1:
 with col2:
     st.plotly_chart(fig_donut_txn_volume, use_container_width=True)
 
-
-
-
-@st.cache_data
-def load_recent_claim_stats():
-
-    query = f"""
-    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Delegator", 
-    (amount)/pow(10,6) as "💰Reward Volume"
-    from axelar.gov.fact_staking_rewards
-    where tx_succeeded='true'
-    order by 1 desc 
-    LIMIT 100
-    """
-
-    df = pd.read_sql(query, conn)
-    return df
-
-
-
-
-
+# --- Row 7 ---------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_top_reward_claimers(start_date, end_date):
     
@@ -384,15 +363,43 @@ def load_top_reward_claimers(start_date, end_date):
     where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
     group by 1
     order by 2 desc 
-    limit 100
+    limit 1000
     """
 
     df = pd.read_sql(query, conn)
     return df
 
-# --- Load Data ----------------------------------------------------------------------------------------------------------
+# --- Load Data: Row 7 -------------------------------------------------------------------------------------------------
+df_top_reward_claimers = load_top_reward_claimers(start_date, end_date)
 
+# --- Table: Row 7 ----------------------------------------------------------------------------------------------------
+st.subheader("🏆 Top Reward Claimers")
+df_display = df_top_reward_claimers.copy()
+df_display.index = df_display.index + 1
+df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)
+st.dataframe(df_display, use_container_width=True)
 
+# --- Row 8 -------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_recent_claim_stats():
+
+    query = f"""
+    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Delegator", 
+    (amount)/pow(10,6) as "💰Reward Volume"
+    from axelar.gov.fact_staking_rewards
+    where tx_succeeded='true' and block_timestamp::date = current_date - 1
+    order by 1 desc 
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row 8 -------------------------------------------------------------------------------------------------
 df_recent_claim_stats = load_recent_claim_stats()
 
-df_top_reward_claimers = load_top_reward_claimers(start_date, end_date)
+# --- Table: Row 8 ----------------------------------------------------------------------------------------------------
+st.subheader("📋 Recent Reward Claims")
+df_display = df_recent_claim_stats.copy()
+df_display.index = df_display.index + 1
+df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)
+st.dataframe(df_display, use_container_width=True)
