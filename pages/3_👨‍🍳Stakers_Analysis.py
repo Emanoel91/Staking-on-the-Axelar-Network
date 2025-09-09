@@ -157,6 +157,65 @@ with col2:
     fig2.update_layout(xaxis_title="", yaxis_title="wallet count", template="plotly_white")
     st.plotly_chart(fig2, use_container_width=True)
 
+# --- Row 2 ----------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_stakers_by_quarter():
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with date_start as (
+    with dates AS (
+    SELECT CAST('2022-02-10' AS DATE) AS start_date 
+    UNION ALL
+    SELECT DATEADD(day, 1, start_date)
+    FROM dates
+    WHERE start_date < CURRENT_DATE())
+    SELECT date_trunc(day, start_date) AS start_date
+    FROM dates),
+    axl_stakers_balance as (
+    select * from
+        (select user, sum(amount)/1e6 as balance, min(block_timestamp) as join_date
+        from (
+            select block_timestamp, DELEGATOR_ADDRESS as user, -1* amount as amount, TX_ID as tx_hash
+            from axelar.gov.fact_staking
+            where action='undelegate' and TX_SUCCEEDED=TRUE
+            union all 
+            select block_timestamp, DELEGATOR_ADDRESS, amount, TX_ID
+            from axelar.gov.fact_staking
+            where action='delegate' and TX_SUCCEEDED=TRUE)
+        group by 1)
+    where balance>=0.001 and balance is not null),
+    axl_stakers_reward as (
+    select DELEGATOR_ADDRESS as user, sum(amount)/1e6 as reward
+    from axelar.gov.fact_staking_rewards
+    group by 1),
+    top_stakers as (
+    select a.user, balance, reward, join_date 
+    from axl_stakers_balance a 
+    left join axl_stakers_reward b
+    on a.user=b.user
+    order by 2 desc
+    )
+
+    select year(join_date)||'-Q'||CEIL(month(join_date)/3) as "Year", count(*) as "Stakers"
+    from top_stakers 
+    group by 1
+    order by 1
+    """
+    
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row 2 -----------------------------------------------------------------------------------------------------
+df_stakers_by_quarter = load_stakers_by_quarter()
+# --- Chart: Row 2 ---------------------------------------------------------------------------------------------------------
+fig_b1 = go.Figure()
+fig_b1.add_trace(go.Bar(x=df_stakers_by_quarter["Year"], y=df_stakers_by_quarter["Stakers"], name="Number of Stakers"))
+fig_b1.update_layout(barmode="stack", title="Stakers Join Date by Quarter", yaxis=dict(title="Wallet count"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
+st.plotly_chart(fig_b1, use_container_width=True)
 
 
 
