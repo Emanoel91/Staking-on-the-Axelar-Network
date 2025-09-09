@@ -107,7 +107,7 @@ with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-09-30"))
 
 # --- Functions -----------------------------------------------------------------------------------------------------
-
+# --- Row 1,2,3 -----------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_claim_reward_stats(start_date, end_date):
     
@@ -149,10 +149,10 @@ def load_claim_reward_stats_user(start_date, end_date):
     df = pd.read_sql(query, conn)
     return df
 
-# --- Load Data: Row 1,2 ---------------------------------------------
+# --- Load Data: Row 1,2,3 ---------------------------------------------
 df_claim_reward_stats = load_claim_reward_stats(start_date, end_date)
 df_claim_reward_stats_user = load_claim_reward_stats_user(start_date, end_date)
-# --- kpis: Row 1,2 --------------------------------------------------
+# --- kpis: Row 1,2,3 --------------------------------------------------
 card_style = """
     <div style="
         background-color: #f9f9f9;
@@ -195,7 +195,7 @@ with col8:
 with col9:
     st.markdown(card_style.format(label="Max Reward per Wallet", value=f"{df_claim_reward_stats_user["Max Reward"][0]:,} $AXL"), unsafe_allow_html=True)
 
-
+# --- Row 4,5 -----------------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_reward_stats_overtime(timeframe, start_date, end_date):
     
@@ -220,6 +220,34 @@ def load_reward_stats_overtime(timeframe, start_date, end_date):
 
     df = pd.read_sql(query, conn)
     return df
+
+# --- Load Data ----------------------------------------------------------------------------------------------------------
+df_reward_stats_overtime = load_reward_stats_overtime(timeframe, start_date, end_date)
+# --- Charts: Row 4,5 ----------------------------------------------------------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    fig1 = go.Figure()
+    fig1.add_bar(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Reward Claimed"], name="Reward Amount", yaxis="y1", marker_color="orange")
+    fig1.add_trace(go.Scatter(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Total Reward Claimed"], name="Total Reward Amount", mode="lines", 
+                              yaxis="y2", line=dict(color="black")))
+    fig1.update_layout(title="Amount of Rewards Claimed Over Time", yaxis=dict(title="$AXL"), yaxis2=dict(title="$AXL", overlaying="y", side="right"), xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    fig2 = go.Figure()
+    fig2.add_bar(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Claim Txns Count"], name="Claim Txns", yaxis="y1", marker_color="orange")
+    fig2.add_trace(go.Scatter(x=df_reward_stats_overtime["Date"], y=df_reward_stats_overtime["Reward Claimers"], name="Reward Claimers", mode="lines", yaxis="y2", 
+                              line=dict(color="black")))
+    fig2.update_layout(title="Claim Txns & Reward Claimers Over Time", yaxis=dict(title="Txns count"), yaxis2=dict(title="Wallet count", overlaying="y", side="right"), 
+                       xaxis=dict(title=""),
+        barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
+    st.plotly_chart(fig2, use_container_width=True)
+
+
+
+
 
 @st.cache_data
 def load_recent_claim_stats():
@@ -315,7 +343,7 @@ def load_top_reward_claimers(start_date, end_date):
     return df
 
 # --- Load Data ----------------------------------------------------------------------------------------------------------
-df_reward_stats_overtime = load_reward_stats_overtime(timeframe, start_date, end_date)
+
 
 df_recent_claim_stats = load_recent_claim_stats()
 df_distribution_claimer_volume = load_distribution_claimer_volume(start_date, end_date)
