@@ -240,6 +240,7 @@ def load_stakers_distribution_class(start_date, end_date):
     select "Class", count(distinct delegator_address) as "Stakers Count"
     from table1 
     group by 1
+    order by 2 desc 
     """
 
     df = pd.read_sql(query, conn)
