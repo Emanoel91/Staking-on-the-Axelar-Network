@@ -105,3 +105,254 @@ with col2:
 
 with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-09-30"))
+
+# --- Functions -----------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_staking_stats_different_time_frame():
+
+    query = f"""
+    with tab1 as (select count(distinct tx_id) as staking_count, 
+    round(sum(amount)/pow(10,6)) as staking_volume, '24h' as "Time Frame"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date=current_date-1 and action='delegate'),
+
+    tab2 as (select count(distinct tx_id) as staking_count, 
+    round(sum(amount)/pow(10,6)) as staking_volume, '7d' as "Time Frame"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>=current_date-6 and action='delegate'),
+
+    tab3 as (select count(distinct tx_id) as staking_count, 
+    round(sum(amount)/pow(10,6)) as staking_volume, '30d' as "Time Frame"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>=current_date-29 and action='delegate'),
+
+    tab4 as (select count(distinct tx_id) as staking_count, 
+    round(sum(amount)/pow(10,6)) as staking_volume, '1y' as "Time Frame"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>=current_date-364 and action='delegate')
+
+    select * from tab1 union all
+    select * from tab2 union all
+    select * from tab3 union all 
+    select * from tab4
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_staking_stats(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (
+    select count(distinct tx_id) as "Staking Count",
+    round(avg(amount)/pow(10,6)) as "Avg Staking Volume per Txn", 
+    round(median(amount)/pow(10,6)) as "Median", 
+    round(max(amount)/pow(10,6)) as "Maximum",
+    round((sum(amount)/pow(10,6))/count(distinct delegator_address)) as "Avg Staking Volume per User",
+    round(count(distinct tx_id)/count(distinct delegator_address)) as "Avg Staking Count per User"
+   from axelar.gov.fact_staking
+   where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+   block_timestamp::date<='{end_str}' and action='delegate'),
+   table2 as (with tab1 as (select delegator_address, round(sum(amount)/pow(10,6)) as tot_staking_vol
+   from axelar.gov.fact_staking
+   where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+   block_timestamp::date<='{end_str}' and action='delegate'
+   group by 1)
+   select round(median(tot_staking_vol)) as "Median Volume of Tokens Staked by Users"
+   from tab1)
+   select * from table1 , table2
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_staking_overtime(timeframe, start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select date_trunc('{timeframe}',block_timestamp) as "Date", 
+    round(sum(amount)/pow(10,6)) as "Staking Volume", 
+    count(distinct tx_id) as "Staking Count",
+    sum("Staking Volume") over (order by "Date" asc) as "Total Staking Volume", 
+    sum("Staking Count") over (order by "Date" asc) as "Total Staking Count",
+    round(avg(amount)/pow(10,6)) as "Avg Volume per tx", 
+    round((sum(amount)/pow(10,6))/count(distinct delegator_address)) as "Avg Volume per User"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}' and action='delegate'
+    group by 1
+    order by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_txn_distribution_volume(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+     with tab1 as (select tx_id, case 
+     when (amount/pow(10,6))<=1 then 'V<=1 AXL'
+     when (amount/pow(10,6))>1 and (amount/pow(10,6))<=10 then '1<V<=10 AXL' 
+     when (amount/pow(10,6))>10 and (amount/pow(10,6))<=100 then '10<V<=100 AXL'
+     when (amount/pow(10,6))>100 and (amount/pow(10,6))<=1000 then '100<V<=1k AXL'
+     when (amount/pow(10,6))>1000 and (amount/pow(10,6))<=10000 then '1k<V<=10k AXL'
+     when (amount/pow(10,6))>10000 and (amount/pow(10,6))<=100000 then '10k<V<=100k AXL'
+     when (amount/pow(10,6))>100000 and (amount/pow(10,6))<=1000000 then '100k<V<=1M AXL'
+     else 'V>1M AXL' end as "Staking Amount"
+     from axelar.gov.fact_staking
+     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='2025-01-01' AND
+     block_timestamp::date<='2025-09-30' and action='delegate')
+     select "Staking Amount", count(distinct tx_id) as "Txns Count"
+     from tab1
+     group by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_stakers_overtime(timeframe, start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (select date_trunc('{timeframe}',block_timestamp) as "Date", count(distinct delegator_address) as "Total Stakers"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and action='delegate'
+    group by 1
+    order by 1),
+    table2 as (with tab1 as (select delegator_address, min(block_timestamp::date) as first_tx
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and action='delegate'
+    group by 1)
+    select date_trunc('{timeframe}',first_tx) as "Date", count(distinct delegator_address) as "New Stakers",
+    sum("New Stakers") over (order by "Date") as "Stakers Growth"
+    from tab1
+    group by 1)
+    select table1."Date" as "Date", "Total Stakers", "New Stakers", 
+    "Total Stakers"-"New Stakers" as "Returning Stakers", "Stakers Growth"
+    from table1 left join table2 on table1."Date"=table2."Date"
+    where table1."Date">='{start_str}' AND table1."Date"<='{end_str}'
+    order by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_stakers_distribution_count(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (select delegator_address, count(distinct tx_id) as "Staking Count"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}' and action='delegate'
+    group by 1)
+    select "Staking Count", count(distinct delegator_address) as "Stakers Count"
+    from table1 
+    group by 1
+    order by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_stakers_distribution_class(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (select delegator_address, count(distinct tx_id), case 
+    when count(distinct tx_id)=1 then 'n=1 Txn'
+    when count(distinct tx_id)>1 and count(distinct tx_id)<=5 then '1<n<=5 Txns'
+    when count(distinct tx_id)>5 and count(distinct tx_id)<=10 then '5<n<=10 Txns'
+    when count(distinct tx_id)>10 and count(distinct tx_id)<=20 then '10<n<=20 Txns'
+    when count(distinct tx_id)>20 and count(distinct tx_id)<=50 then '20<n<=50 Txns'
+    when count(distinct tx_id)>50 and count(distinct tx_id)<=100 then '50<n<=100 Txns'
+    else 'n>100 Txns' end as "Class"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}' and action='delegate'
+    group by 1)
+    select "Class", count(distinct delegator_address) as "Stakers Count"
+    from table1 
+    group by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_stakers_distribution_volume(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (select delegator_address, sum(amount)/pow(10,6), case 
+    when (sum(amount)/pow(10,6))<=10 then 'V<=10 AXL'
+    when (sum(amount)/pow(10,6))>10 and (sum(amount)/pow(10,6))<=100 then '10<V<=100 AXL'
+    when (sum(amount)/pow(10,6))>100 and (sum(amount)/pow(10,6))<=1000 then '100<V<=1k AXL'
+    when (sum(amount)/pow(10,6))>1000 and (sum(amount)/pow(10,6))<=10000 then '1k<V<=10k AXL'
+    when (sum(amount)/pow(10,6))>10000 and (sum(amount)/pow(10,6))<=100000 then '10k<V<=100k AXL'
+    when (sum(amount)/pow(10,6))>100000 and (sum(amount)/pow(10,6))<=1000000 then '100k<V<=1M AXL'
+    when (sum(amount)/pow(10,6))>1000000 and (sum(amount)/pow(10,6))<=10000000 then '1M<V<=10M AXL'
+    else 'V>10M AXL' end as "Class"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}' and action='delegate'
+    group by 1)
+    select "Class", count(distinct delegator_address) as "Staker Count"
+    from table1 
+    group by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_stakers_activity_tracker(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select delegator_address as "👨‍🍳Staker", count(distinct tx_id) as "🔗Total Staking Count", 
+    round((sum(amount)/pow(10,6)),1) as "🥩Total Staking Volume", 
+    min(block_timestamp::date) as "📅First Staking Date"
+    from axelar.gov.fact_staking
+    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
+    block_timestamp::date<='{end_str}' and action='delegate'
+    group by 1
+    order by 3 desc 
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+# --- Load Data -----------------------------------------------------------------------------------------------------
+df_staking_stats_different_time_frame = load_staking_stats_different_time_frame()
+df_staking_stats = load_staking_stats(start_date, end_date)
+df_staking_overtime = load_staking_overtime(timeframe, start_date, end_date)
+df_txn_distribution_volume = load_txn_distribution_volume(start_date, end_date)
+df_stakers_overtime = load_stakers_overtime(timeframe, start_date, end_date)
+df_stakers_distribution_count = load_stakers_distribution_count(start_date, end_date)
+df_stakers_distribution_class = load_stakers_distribution_class(start_date, end_date)
+df_stakers_distribution_volume = load_stakers_distribution_volume(start_date, end_date)
+df_stakers_activity_tracker = load_stakers_activity_tracker(start_date, end_date)
