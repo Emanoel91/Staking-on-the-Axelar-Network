@@ -328,14 +328,14 @@ df_distribution_txn_volume = load_distribution_txn_volume(start_date, end_date)
 # ---Charts: Row 6 ---------------------------------------------------------------------------------------------------------------
 
 fig_donut_claimer_volume = px.pie(df_distribution_claimer_volume, names="Class", values="Staker Count", title="Distribution of Stakers by Reward Amount", hole=0.5, color="Staker Count")
-fig_donut_claimer_volume.update_traces(textposition='inside', textinfo='percent+label', pull=[0.05]*len(df_distribution_claimer_volume))
+fig_donut_claimer_volume.update_traces(textposition='inside', textinfo='percent', pull=[0.05]*len(df_distribution_claimer_volume))
 fig_donut_claimer_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
 
 # -----------------------
 
 fig_donut_txn_volume = px.pie(df_distribution_txn_volume, names="Class", values="Stake Count", title="Distribution of Staking Transactions by Reward Amount", hole=0.5, 
                               color="Stake Count")
-fig_donut_txn_volume.update_traces(textposition='inside', textinfo='percent+label', pull=[0.05]*len(df_distribution_txn_volume))
+fig_donut_txn_volume.update_traces(textposition='inside', textinfo='percent', pull=[0.05]*len(df_distribution_txn_volume))
 fig_donut_txn_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
 
 col1, col2 = st.columns(2)
