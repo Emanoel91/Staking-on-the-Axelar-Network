@@ -257,8 +257,77 @@ with col11:
 with col12:
     st.markdown(card_style.format(label="Max Staking Amount per Wallet", value=f"{df_staking_stats["Max Volume of Tokens Staked by User"][0]:,} $AXL"), unsafe_allow_html=True)
 
+# --- Row 5 ----------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_net_staked_overtime(start_date, end_date):
 
+    query = f"""
+    with overview as (
+    with date_start as (
+    with dates AS (
+    SELECT CAST('2022-02-10' AS DATE) AS start_date 
+    UNION ALL
+    SELECT DATEADD(day, 1, start_date)
+    FROM dates
+    WHERE start_date < CURRENT_DATE())
+    SELECT date_trunc(day, start_date) AS start_date
+    FROM dates),
+    axl_stakers_balance_change as (
+    select * from 
+        (select date_trunc(day, block_timestamp) as date, 
+        user, 
+        sum(amount)/1e6 as balance_change
+        from 
+            (
+            select block_timestamp, DELEGATOR_ADDRESS as user, -1* amount as amount, TX_ID as tx_hash
+            from axelar.gov.fact_staking
+            where action='undelegate' and TX_SUCCEEDED=TRUE
+            union all 
+            select block_timestamp, DELEGATOR_ADDRESS, amount, TX_ID
+            from axelar.gov.fact_staking
+            where action='delegate' and TX_SUCCEEDED=TRUE)
+        group by 1,2)),
 
+    axl_stakers_historic_holders as (
+    select user
+    from axl_stakers_balance_change
+    group by 1),
+
+    user_dates as (
+    select start_date, user
+    from date_start, axl_stakers_historic_holders),
+
+    users_balance as 
+    (select start_date as "Date", user,
+    lag(balance_raw) ignore nulls over (partition by user order by start_date) as balance_lag,
+    ifnull(balance_raw, balance_lag) as balance
+    from (
+        select start_date, a.user, balance_change,
+        sum(balance_change) over (partition by a.user order by start_date) as balance_raw,
+        from user_dates a 
+        left join axl_stakers_balance_change b 
+        on date=start_date and a.user=b.user))
+
+    select "Date", round(sum(balance)) as "Net Staked", 1215160193 as "Current Total Supply", round((100*"Net Staked"/"Current Total Supply"),2) as "Net Staked %"
+    from users_balance
+    where balance>=0.001 and balance is not null
+    group by 1 
+    order by 1 desc)
+    select "Date", "Net Staked"
+    from overview
+    where "Date">='{start_str}' and "Date"<='{end_str}'
+    order by 1
+    """
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row 5 ----------------------------------------------------------------------------------------
+df_net_staked_overtime = load_net_staked_overtime(start_date, end_date)
+# --- Charts 5 ------------------------------------------------------------------------------------------------
+
+    fig = px.area(df_net_staked_overtime, x="Date", y="Net Staked", title="AXL Net Staked Amount Over Time")
+    fig.update_layout(xaxis_title="", yaxis_title="$AXL", template="plotly_white")
+    st.plotly_chart(fig, use_container_width=True)
 
 @st.cache_data
 def load_staking_stats_different_time_frame():
