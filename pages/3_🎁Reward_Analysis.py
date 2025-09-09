@@ -106,3 +106,208 @@ with col2:
 with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-09-30"))
 
+# --- Functions -----------------------------------------------------------------------------------------------------
+
+@st.cache_data
+def load_claim_reward_stats(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select 
+    count(distinct delegator_address) as "Reward Claimers", 
+    round(sum(amount)/pow(10,6)) as "Reward Claimed", 
+    round((avg(amount)/pow(10,6)),1) as "Average", 
+    round((median(amount)/pow(10,6)),1) as "Median", 
+    ROUND(((sum(amount)/pow(10,6))/count(distinct delegator_address)),2) AS "Avg Reward Claimed per User",
+    round(max(amount)/pow(10,6)) as "Maximum",
+    count(distinct tx_id) as "Claim Txns Count"
+    from axelar.gov.fact_staking_rewards
+    where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_claim_reward_stats_user(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with tab1 as (select 
+    delegator_address, sum(amount)/pow(10,6) as reward_claimed
+    from axelar.gov.fact_staking_rewards
+    where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
+    group by 1)
+    select round(median(reward_claimed),2) as "Median Reward Claimed by Users"
+    from tab1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data: Row 1,2 ---------------------------------------------
+df_claim_reward_stats = load_claim_reward_stats(start_date, end_date)
+df_claim_reward_stats_user = load_claim_reward_stats_user(start_date, end_date)
+# --- kpis: Row 1,2 --------------------------------------------------
+card_style = """
+    <div style="
+        background-color: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+        ">
+        <h4 style="margin: 0; font-size: 20px; color: #555;">{label}</h4>
+        <p style="margin: 5px 0 0; font-size: 20px; font-weight: bold; color: #000;">{value}</p>
+    </div>
+"""
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown(card_style.format(label="Number of Reward Claimers", value=f"{df_claim_reward_stats["Reward Claimers"][0]:,}Wallets"), unsafe_allow_html=True)
+with col2:
+    st.markdown(card_style.format(label="Number of Reward Claim Transactions", value=f"{df_claim_reward_stats["Claim Txns Count"][0]:,} Txns"), unsafe_allow_html=True)
+with col3:
+    st.markdown(card_style.format(label="Total Reward Claimed by Stakers", value=f"{df_claim_reward_stats["Reward Claimed"][0]:,} $AXL"), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+col4, col5, col6 = st.columns(3)
+with col4:
+    st.markdown(card_style.format(label="Avg Reward Claimed per Txn", value=f"{df_claim_reward_stats["Average"][0]:,} $AXL"), unsafe_allow_html=True)
+with col5:
+    st.markdown(card_style.format(label="Avg Reward Claimed per Wallet", value=f"{df_claim_reward_stats["Avg Reward Claimed per User"][0]:,} $AXL"), unsafe_allow_html=True)
+with col6:
+    st.markdown(card_style.format(label="Median Reward Claimed by Users", value=f"{df_claim_reward_stats_user["Median Reward Claimed by Users"][0]:,} $AXL"), unsafe_allow_html=True)
+
+
+@st.cache_data
+def load_reward_stats_overtime(timeframe, start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select date_trunc('{timeframe}',block_timestamp) as "Date", 
+    count(distinct delegator_address) as "Reward Claimers", 
+    round(sum(amount)/pow(10,6)) as "Reward Claimed",
+    sum("Reward Claimed") over (order by "Date" asc) as "Total Reward Claimed", 
+    round((avg(amount)/pow(10,6)),1) as "Average", 
+    round((median(amount)/pow(10,6)),1) as "Median", 
+    round(max(amount)/pow(10,6)) as "Maximum",
+    count(distinct tx_id) as "Claim Txns Count", 
+    sum("Claim Txns Count") over (order by "Date" asc) as "Total TXs Count"
+    from axelar.gov.fact_staking_rewards
+    where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
+    group by 1
+    order by 1
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_recent_claim_stats():
+
+    query = f"""
+    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Delegator", 
+    (amount)/pow(10,6) as "💰Reward Volume"
+    from axelar.gov.fact_staking_rewards
+    where tx_succeeded='true'
+    order by 1 desc 
+    LIMIT 100
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_distribution_claimer_volume(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with tab1 as (select delegator_address, round(sum(amount)/pow(10,6)) as "Reward Volume", case 
+    when (sum(amount)/pow(10,6))<=10 then 'V<=10 AXL'
+    when (sum(amount)/pow(10,6))>10 and (sum(amount)/pow(10,6))<=100 then '10<V<=100 AXL'
+    when (sum(amount)/pow(10,6))>100 and (sum(amount)/pow(10,6))<=1000 then '100<V<=1k AXL'
+    when (sum(amount)/pow(10,6))>1000 and (sum(amount)/pow(10,6))<=10000 then '1k<V<=10k AXL'
+    when (sum(amount)/pow(10,6))>10000 and (sum(amount)/pow(10,6))<=100000 then '10k<V<=100k AXL'
+    when (sum(amount)/pow(10,6))>100000 and (sum(amount)/pow(10,6))<=1000000 then '100k<V<=1M AXL'
+    else 'V>1M AXL' end as "Class"
+    from axelar.gov.fact_staking_rewards
+    where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
+    group by 1)
+    select "Class", count(distinct delegator_address) as "Staker Count"
+    from tab1
+    group by 1
+    order by 2 desc 
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_distribution_txn_volume(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with tab1 as (select tx_id, round(sum(amount)/pow(10,6)) as "Reward Volume", case 
+    when (sum(amount)/pow(10,6))<=1 then 'V<=1 AXL'
+    when (sum(amount)/pow(10,6))>1 and (sum(amount)/pow(10,6))<=5 then '1<V<=5 AXL'
+    when (sum(amount)/pow(10,6))>5 and (sum(amount)/pow(10,6))<=10 then '5<V<=10 AXL'
+    when (sum(amount)/pow(10,6))>10 and (sum(amount)/pow(10,6))<=100 then '10<V<=100 AXL'
+    when (sum(amount)/pow(10,6))>100 and (sum(amount)/pow(10,6))<=1000 then '100<V<=1k AXL'
+    when (sum(amount)/pow(10,6))>1000 and (sum(amount)/pow(10,6))<=10000 then '1k<V<=10k AXL'
+    when (sum(amount)/pow(10,6))>10000 and (sum(amount)/pow(10,6))<=100000 then '10k<V<=100k AXL'
+    when (sum(amount)/pow(10,6))>100000 and (sum(amount)/pow(10,6))<=1000000 then '100k<V<=1M AXL'
+    else 'V>1M AXL' end as "Class"
+    from axelar.gov.fact_staking_rewards
+    where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
+    group by 1)
+    select "Class", count(distinct tx_id) as "Stake Count"
+    from tab1
+    group by 1
+    order by 2 desc 
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+@st.cache_data
+def load_top_reward_claimers(start_date, end_date):
+    
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    select delegator_address as "Delegator", 
+    round(sum(amount)/pow(10,6)) as "Reward Volume", 
+    count(distinct tx_id) as "Reward Claimed Txns",
+    min(block_timestamp::date) as "First Reward Claim Date",
+    round(avg(amount)/pow(10,6)) as "Avg Reward Claimed"
+    from axelar.gov.fact_staking_rewards
+    where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
+    group by 1
+    order by 2 desc 
+    limit 100
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+# --- Load Data ----------------------------------------------------------------------------------------------------------
+df_reward_stats_overtime = load_reward_stats_overtime(timeframe, start_date, end_date)
+
+df_recent_claim_stats = load_recent_claim_stats()
+df_distribution_claimer_volume = load_distribution_claimer_volume(start_date, end_date)
+df_distribution_txn_volume = load_distribution_txn_volume(start_date, end_date)
+df_top_reward_claimers = load_top_reward_claimers(start_date, end_date)
