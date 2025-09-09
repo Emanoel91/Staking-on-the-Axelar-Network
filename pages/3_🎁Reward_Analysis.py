@@ -264,26 +264,7 @@ with col4:
         barmode="group", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5))
     st.plotly_chart(fig4, use_container_width=True)
 
-
-
-
-
-
-@st.cache_data
-def load_recent_claim_stats():
-
-    query = f"""
-    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Delegator", 
-    (amount)/pow(10,6) as "💰Reward Volume"
-    from axelar.gov.fact_staking_rewards
-    where tx_succeeded='true'
-    order by 1 desc 
-    LIMIT 100
-    """
-
-    df = pd.read_sql(query, conn)
-    return df
-
+# --- Row 6 -----------------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_distribution_claimer_volume(start_date, end_date):
     
@@ -340,6 +321,53 @@ def load_distribution_txn_volume(start_date, end_date):
     df = pd.read_sql(query, conn)
     return df
 
+# --- Load Data Row 6 -------------------------------------------------------------------------------------------------
+df_distribution_claimer_volume = load_distribution_claimer_volume(start_date, end_date)
+df_distribution_txn_volume = load_distribution_txn_volume(start_date, end_date)
+
+# ---Charts: Row 6 ---------------------------------------------------------------------------------------------------------------
+
+fig_donut_claimer_volume = px.pie(df_distribution_claimer_volume, names="Class", values="Staker Count", title="Distribution of Stakers by Reward Amount", hole=0.5, color="Staker Count")
+fig_donut_claimer_volume.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(df_distribution_claimer_volume))
+fig_donut_claimer_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+
+# -----------------------
+
+fig_donut_txn_volume = px.pie(df_distribution_txn_volume, names="Class", values="Stake Count", title="Distribution of Staking Transactions by Reward Amount", hole=0.5, 
+                              color="Stake Count")
+fig_donut_txn_volume.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(df_distribution_txn_volume))
+fig_donut_txn_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig_donut_claimer_volume, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig_donut_txn_volume, use_container_width=True)
+
+
+
+
+@st.cache_data
+def load_recent_claim_stats():
+
+    query = f"""
+    select block_timestamp::date as "📅Date", delegator_address as "👨‍💼Delegator", 
+    (amount)/pow(10,6) as "💰Reward Volume"
+    from axelar.gov.fact_staking_rewards
+    where tx_succeeded='true'
+    order by 1 desc 
+    LIMIT 100
+    """
+
+    df = pd.read_sql(query, conn)
+    return df
+
+
+
+
+
 @st.cache_data
 def load_top_reward_claimers(start_date, end_date):
     
@@ -366,6 +394,5 @@ def load_top_reward_claimers(start_date, end_date):
 
 
 df_recent_claim_stats = load_recent_claim_stats()
-df_distribution_claimer_volume = load_distribution_claimer_volume(start_date, end_date)
-df_distribution_txn_volume = load_distribution_txn_volume(start_date, end_date)
+
 df_top_reward_claimers = load_top_reward_claimers(start_date, end_date)
