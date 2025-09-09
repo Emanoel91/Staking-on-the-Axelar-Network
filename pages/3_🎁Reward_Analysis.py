@@ -142,7 +142,7 @@ def load_claim_reward_stats_user(start_date, end_date):
     from axelar.gov.fact_staking_rewards
     where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
     group by 1)
-    select round(median(reward_claimed),2) as "Median Reward Claimed by Users"
+    select round(median(reward_claimed),2) as "Median Reward Claimed by Users", round(max(reward_claimed)) as "Max Reward"
     from tab1
     """
 
@@ -179,11 +179,21 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 col4, col5, col6 = st.columns(3)
 with col4:
-    st.markdown(card_style.format(label="Avg Reward Claimed per Txn", value=f"{df_claim_reward_stats["Average"][0]:,} $AXL"), unsafe_allow_html=True)
+    st.markdown(card_style.format(label="Avg Reward per Txn", value=f"{df_claim_reward_stats["Average"][0]:,} $AXL"), unsafe_allow_html=True)
 with col5:
-    st.markdown(card_style.format(label="Avg Reward Claimed per Wallet", value=f"{df_claim_reward_stats["Avg Reward Claimed per User"][0]:,} $AXL"), unsafe_allow_html=True)
+    st.markdown(card_style.format(label="Median Reward per Txn", value=f"{df_claim_reward_stats["Median"][0]:,} $AXL"), unsafe_allow_html=True)
 with col6:
-    st.markdown(card_style.format(label="Median Reward Claimed by Users", value=f"{df_claim_reward_stats_user["Median Reward Claimed by Users"][0]:,} $AXL"), unsafe_allow_html=True)
+    st.markdown(card_style.format(label="Max Reward per Txn", value=f"{df_claim_reward_stats["Maximum"][0]:,} $AXL"), unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+col7, col8, col9 = st.columns(3)
+with col7:
+    st.markdown(card_style.format(label="Avg Reward per Wallet", value=f"{df_claim_reward_stats["Avg Reward Claimed per User"][0]:,} $AXL"), unsafe_allow_html=True)
+with col8:
+    st.markdown(card_style.format(label="Median Reward per Wallet", value=f"{df_claim_reward_stats_user["Median Reward Claimed by Users"][0]:,} $AXL"), unsafe_allow_html=True)
+with col9:
+    st.markdown(card_style.format(label="Max Reward per Wallet", value=f"{df_claim_reward_stats_user["Max Reward"][0]:,} $AXL"), unsafe_allow_html=True)
 
 
 @st.cache_data
