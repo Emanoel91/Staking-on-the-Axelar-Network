@@ -217,8 +217,7 @@ fig_b1.update_layout(barmode="stack", title="Stakers Join Date by Quarter", yaxi
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
 st.plotly_chart(fig_b1, use_container_width=True)
 
-
-
+# --- Row 3 ----------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_stakers_distribution_count(start_date, end_date):
     
@@ -239,6 +238,17 @@ def load_stakers_distribution_count(start_date, end_date):
 
     df = pd.read_sql(query, conn)
     return df
+
+# --- Load Data: Row 3 -------------------------------------------------------------------------------------------------
+df_stakers_distribution_count = load_stakers_distribution_count(start_date, end_date)
+# --- Chart: Row 3 -----------------------------------------------------------------------------------------------------
+fig_b1 = go.Figure()
+fig_b1.add_trace(go.Bar(x=df_stakers_distribution_count["Staking Count"], y=df_stakers_distribution_count["Stakers Count"], name="Stakers Count"))
+fig_b1.update_layout(barmode="stack", title="Distribution of Stakers Based on the Staking Count", yaxis=dict(title="Wallet count"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), yaxis= dict(type="log"))
+st.plotly_chart(fig_b1, use_container_width=True)
+
+
 
 @st.cache_data
 def load_stakers_distribution_class(start_date, end_date):
