@@ -362,7 +362,7 @@ def load_top_reward_claimers(start_date, end_date):
     from axelar.gov.fact_staking_rewards
     where block_timestamp::date>='{start_str}' and block_timestamp::date<='{end_str}' and tx_succeeded='true'
     group by 1
-    order by 2 desc 
+    order by round(sum(amount)/pow(10,6)) desc 
     limit 1000
     """
 
