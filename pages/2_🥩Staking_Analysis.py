@@ -461,6 +461,7 @@ def load_txn_distribution_volume(start_date, end_date):
      select "Staking Amount", count(distinct tx_id) as "Txns Count"
      from tab1
      group by 1
+     order by 2 desc 
     """
 
     df = pd.read_sql(query, conn)
