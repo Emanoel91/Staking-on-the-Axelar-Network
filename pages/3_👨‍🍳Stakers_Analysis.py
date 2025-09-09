@@ -249,10 +249,10 @@ def load_stakers_distribution_class(start_date, end_date):
 # --- Load Data: Row 3 -------------------------------------------------------------------------------------------------
 df_stakers_distribution_class = load_stakers_distribution_class(start_date, end_date)
 # --- Chart: Row 3 -----------------------------------------------------------------------------------------------------
-bar_fig = px.bar(df_stakers_distribution_class, x="Class", y="Stakers Count", title="Breakdown of Stakers by Staked Volume", color_discrete_sequence=["blue"])
+bar_fig = px.bar(df_stakers_distribution_class, x="Class", y="Stakers Count", title="Breakdown of Stakers by Staking Count", color_discrete_sequence=["blue"])
 bar_fig.update_layout(xaxis_title="", yaxis_title="wallet count", bargap=0.2)
 
-fig_donut_volume = px.pie(df_stakers_distribution_class, names="Class", values="Stakers Count", title="Share of Stakers by Staked Volume", hole=0.5, color="Stakers Count")
+fig_donut_volume = px.pie(df_stakers_distribution_class, names="Class", values="Stakers Count", title="Share of Stakers by Staking Count", hole=0.5, color="Stakers Count")
 fig_donut_volume.update_traces(textposition='inside', textinfo='percent', pull=[0.05]*len(df_stakers_distribution_class))
 fig_donut_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
 
@@ -264,12 +264,7 @@ with col1:
 with col2:
     st.plotly_chart(fig_donut_volume, use_container_width=True)
 
-
-
-
-
-
-
+# --- Row 4 ----------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_stakers_distribution_volume(start_date, end_date):
     
@@ -290,13 +285,34 @@ def load_stakers_distribution_volume(start_date, end_date):
     where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
     block_timestamp::date<='{end_str}' and action='delegate'
     group by 1)
-    select "Class", count(distinct delegator_address) as "Staker Count"
+    select "Class", count(distinct delegator_address) as "Stakers Count"
     from table1 
     group by 1
+    order by 2 desc 
     """
 
     df = pd.read_sql(query, conn)
     return df
+
+# --- Load Data: Row 4 ---------------------------------------------------------------------------------------------------
+df_stakers_distribution_volume = load_stakers_distribution_volume(start_date, end_date)
+# ---Charts: Row 4 -------------------------------------------------------------------------------------------------------
+bar_fig = px.bar(df_stakers_distribution_volume, x="Class", y="Stakers Count", title="Breakdown of Stakers by Staked Volume", color_discrete_sequence=["blue"])
+bar_fig.update_layout(xaxis_title="", yaxis_title="wallet count", bargap=0.2)
+
+fig_donut_volume = px.pie(df_stakers_distribution_volume, names="Class", values="Stakers Count", title="Share of Stakers by Staked Volume", hole=0.5, color="Stakers Count")
+fig_donut_volume.update_traces(textposition='inside', textinfo='percent', pull=[0.05]*len(df_stakers_distribution_volume))
+fig_donut_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(bar_fig, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig_donut_volume, use_container_width=True)
+
+
 
 @st.cache_data
 def load_stakers_activity_tracker(start_date, end_date):
@@ -325,5 +341,5 @@ def load_stakers_activity_tracker(start_date, end_date):
 
 
 
-df_stakers_distribution_volume = load_stakers_distribution_volume(start_date, end_date)
+
 df_stakers_activity_tracker = load_stakers_activity_tracker(start_date, end_date)
