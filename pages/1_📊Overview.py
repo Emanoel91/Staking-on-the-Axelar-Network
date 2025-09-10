@@ -106,6 +106,13 @@ with col2:
 with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-09-30"))
 
+# --- Color Map ---------------------------------------------------------------------------------------------------
+color_map = {
+    "delegate": "#0ed145",
+    "undelegate": "#ff999d",
+    "redelegate": "#fff993"
+}
+
 # --- Row 1,2,3 ---------------------------------------------------------------------------------------------------------------
 @st.cache_data
 def load_staking_over_time(timeframe, start_date, end_date):
@@ -128,8 +135,10 @@ def load_staking_over_time(timeframe, start_date, end_date):
 
     df = pd.read_sql(query, conn)
     return df
+
 # --- Load Data: Row 1,2,3 ---------------------------------------------------
 df_staking_over_time = load_staking_over_time(timeframe, start_date, end_date)
+
 # --- Charts: Row 1 ----------------------------------------------------------
 col1, col2 = st.columns(2)
 
@@ -139,7 +148,8 @@ with col1:
         x="Date",
         y="Txn Volume",
         color="Action",
-        title="Transactions Volume Over Time By Action"
+        title="Transactions Volume Over Time By Action",
+        color_discrete_map=color_map
     )
     fig_stacked_volume.update_layout(barmode="stack", yaxis_title="$USD", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_stacked_volume, use_container_width=True)
@@ -150,7 +160,8 @@ with col2:
         x="Date",
         y="Txn Count",
         color="Action",
-        title="Transactions Count Over Time By Action"
+        title="Transactions Count Over Time By Action",
+        color_discrete_map=color_map
     )
     fig_stacked_txn.update_layout(barmode="stack", yaxis_title="Txns count", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_stacked_txn, use_container_width=True)
@@ -163,7 +174,8 @@ with col3:
         x="Date",
         y="User Count",
         color="Action",
-        title="User Count over Time By Action"
+        title="User Count over Time By Action",
+        color_discrete_map=color_map
     )
     fig_line_user.update_layout(yaxis_title="Wallet count", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_line_user, use_container_width=True)
@@ -174,7 +186,8 @@ with col4:
         x="Date",
         y="Median",
         color="Action",
-        title="Median Transactions Volume Over Time By Action"
+        title="Median Transactions Volume Over Time By Action",
+        color_discrete_map=color_map
     )
     fig_line_median.update_layout(yaxis_title="$USD", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_line_median, use_container_width=True)
@@ -193,6 +206,7 @@ with col5:
        color='Action',
        title="Transactions Volume Over Time By Action (%Normalized)",
        text=df_norm['Txn Volume'].astype(str),
+       color_discrete_map=color_map
     )
 
     fig_norm_stacked_volume.update_layout(
@@ -219,6 +233,7 @@ with col6:
        color='Action',
        title="Transactions Count Over Time By Action (%Normalized)",
        text=df_norm['Txn Count'].astype(str),
+       color_discrete_map=color_map
     )
 
     fig_norm_stacked_txn.update_layout(
@@ -254,10 +269,11 @@ def load_staking_total_stats(start_date, end_date):
 
     df = pd.read_sql(query, conn)
     return df
+
 # --- Load Data: Row 4 ------------------------------------------------
 df_staking_total_stats = load_staking_total_stats(start_date, end_date)
-# --- Charts: Row 4 ---------------------------------------------------
 
+# --- Charts: Row 4 ---------------------------------------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -267,7 +283,8 @@ with col1:
          values="Txn Volume",
          title="Total Transactions Volume By Action",
          hole=0.5,
-         color="Action"
+         color="Action",
+         color_discrete_map=color_map
          )
 
      fig_donut_volume.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(df_staking_total_stats))
@@ -281,7 +298,8 @@ with col2:
          values="Txn Count",
          title="Total Transactions Count By Action",
          hole=0.5,
-         color="Action"
+         color="Action",
+         color_discrete_map=color_map
          )
 
      fig_donut_txn.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(df_staking_total_stats))
@@ -290,7 +308,8 @@ with col2:
 
 # --- Charts: Row 5 -----------------------------------------------
 fig_users = go.Figure(data=[
-    go.Bar(name="", x=df_staking_total_stats["Action"], y=df_staking_total_stats["User Count"]),
+    go.Bar(name="", x=df_staking_total_stats["Action"], y=df_staking_total_stats["User Count"],
+           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]])
 ])
 fig_users.update_layout(
     barmode="group",
@@ -300,9 +319,12 @@ fig_users.update_layout(
 )
 
 fig_stats = go.Figure(data=[
-    go.Bar(name="Maximum", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Maximum"]),
-    go.Bar(name="Average", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Average"]),
-    go.Bar(name="Median", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Median"])
+    go.Bar(name="Maximum", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Maximum"],
+           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]]),
+    go.Bar(name="Average", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Average"],
+           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]]),
+    go.Bar(name="Median", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Median"],
+           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]])
 ])
 fig_stats.update_layout(
     barmode="group",
