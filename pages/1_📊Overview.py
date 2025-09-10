@@ -320,11 +320,11 @@ fig_users.update_layout(
 
 fig_stats = go.Figure(data=[
     go.Bar(name="Maximum", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Maximum"],
-           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]]),
+           ),
     go.Bar(name="Average", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Average"],
-           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]]),
+           ),
     go.Bar(name="Median", x=df_staking_total_stats["Action"], y=df_staking_total_stats["Median"],
-           marker_color=[color_map.get(a, "#ccc") for a in df_staking_total_stats["Action"]])
+           )
 ])
 fig_stats.update_layout(
     barmode="group",
