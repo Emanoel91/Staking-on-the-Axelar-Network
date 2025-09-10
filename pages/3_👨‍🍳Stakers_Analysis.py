@@ -312,28 +312,56 @@ with col1:
 with col2:
     st.plotly_chart(fig_donut_volume, use_container_width=True)
 
-
-
+# --- Row 5 -----------------------------------------------------------------------------------------------------------
 @st.cache_data
-def load_stakers_activity_tracker(start_date, end_date):
-    
-    start_str = start_date.strftime("%Y-%m-%d")
-    end_str = end_date.strftime("%Y-%m-%d")
+def load_top_stakers_by_net_staked_volume():
 
     query = f"""
-    select delegator_address as "👨‍🍳Staker", count(distinct tx_id) as "🔗Total Staking Count", 
-    round((sum(amount)/pow(10,6)),1) as "🥩Total Staking Volume", 
-    min(block_timestamp::date) as "📅First Staking Date"
-    from axelar.gov.fact_staking
-    where tx_succeeded='true' and currency='uaxl' and block_timestamp::date>='{start_str}' AND
-    block_timestamp::date<='{end_str}' and action='delegate'
-    group by 1
-    order by 3 desc 
+    with date_start as (
+    with dates AS (
+    SELECT CAST('2022-02-10' AS DATE) AS start_date 
+    UNION ALL
+    SELECT DATEADD(day, 1, start_date)
+    FROM dates
+    WHERE start_date < CURRENT_DATE())
+    SELECT date_trunc(day, start_date) AS start_date
+    FROM dates),
+    axl_stakers_balance as (
+    select * from
+        (select user, sum(amount)/1e6 as balance, min(block_timestamp) as join_date
+        from 
+            (
+            select block_timestamp, DELEGATOR_ADDRESS as user, -1* amount as amount, TX_ID as tx_hash
+            from axelar.gov.fact_staking
+            where action='undelegate' and TX_SUCCEEDED=TRUE
+            union all 
+            select block_timestamp, DELEGATOR_ADDRESS, amount, TX_ID
+            from axelar.gov.fact_staking
+            where action='delegate' and TX_SUCCEEDED=TRUE)
+        group by 1)
+    where balance>=0.001 and balance is not null),
+    axl_stakers_reward as (
+    select DELEGATOR_ADDRESS as user, sum(amount)/1e6 as reward
+    from axelar.gov.fact_staking_rewards
+    group by 1)
+    select a.user as "User", round(balance,1) as "Staked $AXL", round(reward,1) as "Claimed Reward", join_date as "First Stake"
+    from axl_stakers_balance a 
+    left join axl_stakers_reward b
+    on a.user=b.user
+    order by 2 desc
+    limit 1000 
     """
 
     df = pd.read_sql(query, conn)
     return df
-# --- Load Data -----------------------------------------------------------------------------------------------------
+# --- Load Data: Row 5 -----------------------------------------------------------------------------------------------------
+df_top_stakers_by_net_staked_volume = load_top_stakers_by_net_staked_volume()
+# --- Table: Row 5 ---------------------------------------------------------------------------------------------------------
+st.subheader("🏆Top Stakers by Net Staked Volume (All Times)")
+df_display = df_top_stakers_by_net_staked_volume.copy()
+df_display.index = df_display.index + 1
+df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)
+st.dataframe(df_display, use_container_width=True)
 
 
 
@@ -341,5 +369,3 @@ def load_stakers_activity_tracker(start_date, end_date):
 
 
 
-
-df_stakers_activity_tracker = load_stakers_activity_tracker(start_date, end_date)
