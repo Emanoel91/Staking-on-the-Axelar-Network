@@ -286,4 +286,5 @@ st.subheader("Active Validators List")
 df_display = df_active_validators_list.copy()
 df_display.index = df_display.index + 1
 df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)
-st.dataframe(df_display, use_container_width=True)
+st.table(df_display)  
+
