@@ -279,12 +279,50 @@ stakers as (
 
     df = pd.read_sql(query, conn)
     return df
-# --- Load Data: Row 5 -----------------------------------------------------------------------------------------------------
+# --- Load Data: Row 2 -----------------------------------------------------------------------------------------------------
 df_active_validators_list = load_active_validators_list()
-# --- Table: Row 5 ---------------------------------------------------------------------------------------------------------
+# --- Table: Row 2 ---------------------------------------------------------------------------------------------------------
 st.subheader("Active Validators List")
 df_display = df_active_validators_list.copy()
 df_display.index = df_display.index + 1
 df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)
 st.dataframe(df_display, use_container_width=True)
+
+# --- Row 3 ------------------------------------------------------------------------------------------------------------------
+# فرض می‌کنیم df_active_validators_list از قبل ساخته شده است
+df_chart = df_active_validators_list.copy()
+
+# ابتدا عدد خالص درصد را استخراج کنیم (چون مقدار شامل ایموجی 🟩 و 🟥 است)
+df_chart["Change_Value"] = (
+    df_chart["30D Change %"]
+    .str.replace("🟩", "", regex=False)
+    .str.replace("🟥", "", regex=False)
+    .str.replace("%", "", regex=False)
+    .astype(float)
+)
+
+# رسم نمودار
+fig = px.bar(
+    df_chart.sort_values("Change_Value"),
+    x="Change_Value",
+    y="Validator",
+    orientation="h",
+    color=df_chart["Change_Value"].apply(lambda x: "🟩 مثبت" if x > 0 else "🟥 منفی"),
+    color_discrete_map={"🟩 مثبت": "green", "🟥 منفی": "red"},
+    title="تغییر ۳۰ روزه استیکینگ برای هر Validator",
+)
+
+# تنظیم ظاهر نمودار
+fig.update_layout(
+    xaxis_title="تغییر درصدی در ۳۰ روز گذشته (%)",
+    yaxis_title="Validator",
+    showlegend=False,
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+)
+fig.update_traces(marker_line_width=0.5, marker_line_color="black")
+
+# نمایش در Streamlit
+st.subheader("📉 30D Change % per Validator")
+st.plotly_chart(fig, use_container_width=True)
 
