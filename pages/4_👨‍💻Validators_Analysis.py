@@ -292,7 +292,7 @@ st.dataframe(df_display, use_container_width=True)
 # فرض بر این است که df_active_validators_list قبلاً ساخته شده است
 df_chart = df_active_validators_list.copy()
 
-# استخراج مقدار عددی از ستون "30D Change %"
+# استخراج عدد خالص از "30D Change %"
 df_chart["Change_Value"] = (
     df_chart["30D Change %"]
     .str.replace("🟩", "", regex=False)
@@ -301,21 +301,29 @@ df_chart["Change_Value"] = (
     .astype(float)
 )
 
-# مرتب‌سازی بر اساس مقدار تغییر
+# مرتب‌سازی بر اساس مقدار تغییر (از کمترین به بیشترین)
 df_chart = df_chart.sort_values("Change_Value", ascending=True)
 
-# رسم نمودار ستونی افقی
+# رسم نمودار با نمایش مقدار عددی روی ستون‌ها
 fig = px.bar(
     df_chart,
     x="Change_Value",
     y="Validator",
     orientation="h",
+    text="Change_Value",  # مقدار عددی روی ستون
     color=df_chart["Change_Value"].apply(lambda x: "🟩 مثبت" if x > 0 else "🟥 منفی"),
     color_discrete_map={"🟩 مثبت": "green", "🟥 منفی": "red"},
     title="تغییر ۳۰ روزه مقدار استیک برای هر Validator (مرتب‌شده بر اساس تغییر)",
 )
 
 # تنظیم ظاهر نمودار
+fig.update_traces(
+    texttemplate="%{text:.2f}%",  # قالب عددی با دو رقم اعشار و علامت %
+    textposition="outside",       # جایگاه متن: بیرون ستون
+    marker_line_width=0.6,
+    marker_line_color="black"
+)
+
 fig.update_layout(
     xaxis_title="درصد تغییر در ۳۰ روز گذشته (%)",
     yaxis_title="Validator",
@@ -324,7 +332,10 @@ fig.update_layout(
     paper_bgcolor="rgba(0,0,0,0)",
     margin=dict(l=10, r=10, t=50, b=40),
 )
-fig.update_traces(marker_line_width=0.6, marker_line_color="black")
+
+# نمایش نمودار در Streamlit
+st.subheader("📉 30D Change % per Validator (Sorted with Labels)")
+st.plotly_chart(fig, use_container_width=True)
 
 # نمایش در Streamlit
 st.subheader("📉 30D Change % per Validator (Sorted)")
