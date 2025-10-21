@@ -157,7 +157,7 @@ def load_current_net_staked():
         left join axl_stakers_balance_change b 
         on date=start_date and a.user=b.user))
 
-    select "Date", round(sum(balance)) as "Net Staked", 1215160193 as "Current Total Supply", round((100*"Net Staked"/"Current Total Supply"),2) as "Net Staked %"
+    select "Date", round(sum(balance)) as "Net Staked", 1220121405 as "Current Total Supply", round((100*"Net Staked"/"Current Total Supply"),2) as "Net Staked %"
     from users_balance
     where balance>=0.001 and balance is not null
     group by 1 
@@ -311,7 +311,7 @@ def load_net_staked_overtime(start_date, end_date):
         left join axl_stakers_balance_change b 
         on date=start_date and a.user=b.user))
 
-    select "Date", round(sum(balance)) as "Net Staked", 1215160193 as "Current Total Supply", round((100*"Net Staked"/"Current Total Supply"),2) as "Net Staked %"
+    select "Date", round(sum(balance)) as "Net Staked", 1220121405 as "Current Total Supply", round((100*"Net Staked"/"Current Total Supply"),2) as "Net Staked %"
     from users_balance
     where balance>=0.001 and balance is not null
     group by 1 
