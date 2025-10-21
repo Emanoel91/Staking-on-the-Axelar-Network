@@ -151,7 +151,7 @@ with col1:
         title="Transactions Volume Over Time By Action",
         color_discrete_map=color_map
     )
-    fig_stacked_volume.update_layout(barmode="stack", yaxis_title="$USD", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
+    fig_stacked_volume.update_layout(barmode="stack", yaxis_title="$AXL", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_stacked_volume, use_container_width=True)
 
 with col2:
@@ -189,7 +189,7 @@ with col4:
         title="Median Transactions Volume Over Time By Action",
         color_discrete_map=color_map
     )
-    fig_line_median.update_layout(yaxis_title="$USD", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
+    fig_line_median.update_layout(yaxis_title="$AXL", xaxis_title="", legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, title=""))
     st.plotly_chart(fig_line_median, use_container_width=True)
 
 col5, col6 = st.columns(2)
@@ -330,7 +330,7 @@ fig_stats.update_layout(
     barmode="group",
     title="Statistical Data Related to the Volume of Transactions",
     xaxis_title="Action",
-    yaxis_title="$USD",
+    yaxis_title="$AXL",
     yaxis=dict(type="log")
 )
 
