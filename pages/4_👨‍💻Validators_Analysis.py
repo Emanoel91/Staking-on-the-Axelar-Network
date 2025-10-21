@@ -337,7 +337,5 @@ fig.update_layout(
 st.subheader("📉 30D Change % per Validator (Sorted with Labels)")
 st.plotly_chart(fig, use_container_width=True)
 
-# نمایش در Streamlit
-st.subheader("📉 30D Change % per Validator (Sorted)")
-st.plotly_chart(fig, use_container_width=True)
+
 
