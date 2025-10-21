@@ -289,10 +289,8 @@ df_display = df_display.applymap(lambda x: f"{x:,}" if isinstance(x, (int, float
 st.dataframe(df_display, use_container_width=True)
 
 # --- Row 3 ------------------------------------------------------------------------------------------------------------------
-# فرض بر این است که df_active_validators_list قبلاً ساخته شده است
 df_chart = df_active_validators_list.copy()
 
-# استخراج عدد خالص از "30D Change %"
 df_chart["Change_Value"] = (
     df_chart["30D Change %"]
     .str.replace("🟩", "", regex=False)
@@ -301,31 +299,28 @@ df_chart["Change_Value"] = (
     .astype(float)
 )
 
-# مرتب‌سازی بر اساس مقدار تغییر (از کمترین به بیشترین)
 df_chart = df_chart.sort_values("Change_Value", ascending=True)
 
-# رسم نمودار با نمایش مقدار عددی روی ستون‌ها
 fig = px.bar(
     df_chart,
     x="Change_Value",
     y="Validator",
     orientation="h",
-    text="Change_Value",  # مقدار عددی روی ستون
-    color=df_chart["Change_Value"].apply(lambda x: "🟩 مثبت" if x > 0 else "🟥 منفی"),
-    color_discrete_map={"🟩 مثبت": "green", "🟥 منفی": "red"},
-    title="تغییر ۳۰ روزه مقدار استیک برای هر Validator (مرتب‌شده بر اساس تغییر)",
+    text="Change_Value", 
+    color=df_chart["Change_Value"].apply(lambda x: "🟩+" if x > 0 else "🟥-"),
+    color_discrete_map={"🟩+": "green", "🟥-": "red"},
+    title="30-Day AXL Staking Amount Change for each Validator (sorted by change)",
 )
 
-# تنظیم ظاهر نمودار
 fig.update_traces(
-    texttemplate="%{text:.2f}%",  # قالب عددی با دو رقم اعشار و علامت %
-    textposition="outside",       # جایگاه متن: بیرون ستون
+    texttemplate="%{text:.2f}%",  
+    textposition="outside",       
     marker_line_width=0.6,
     marker_line_color="black"
 )
 
 fig.update_layout(
-    xaxis_title="درصد تغییر در ۳۰ روز گذشته (%)",
+    xaxis_title="30D Change%",
     yaxis_title="Validator",
     showlegend=False,
     plot_bgcolor="rgba(0,0,0,0)",
@@ -333,8 +328,8 @@ fig.update_layout(
     margin=dict(l=10, r=10, t=50, b=40),
 )
 
-# نمایش نمودار در Streamlit
-st.subheader("📉 30D Change % per Validator (Sorted with Labels)")
+
+st.subheader("📉 30D Change % per Validator")
 st.plotly_chart(fig, use_container_width=True)
 
 
